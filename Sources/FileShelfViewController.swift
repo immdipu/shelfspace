@@ -95,7 +95,7 @@ class Simple3ColumnLayout: NSCollectionViewLayout {
 class FileShelfViewController: NSViewController {
     private var scrollView: NSScrollView!
     private var collectionView: NSCollectionView!
-    private var dropZoneView: DropZoneView!
+
     private var headerView: NSView!
     private var tabsContainer: NSView!
     private var tabButtons: [NSButton] = []
@@ -141,6 +141,10 @@ class FileShelfViewController: NSViewController {
         for (index, item) in items.enumerated() {
             print("  \(index): \(item.displayName) (\(item.itemType))")
         }
+        
+        // Enable layer for drag overlay effects
+        view.wantsLayer = true
+        view.layer?.backgroundColor = AppColors.background.cgColor
         
         setupCollectionView()
         
@@ -316,10 +320,8 @@ class FileShelfViewController: NSViewController {
     }
     
     private func setupDropZone() {
-        dropZoneView = DropZoneView()
-        dropZoneView.delegate = self
-        dropZoneView.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(dropZoneView)
+        // Drop zone is now the entire collection view area
+        // We'll make the collection view accept drops
     }
     
     private func setupCollectionView() {
@@ -338,6 +340,8 @@ class FileShelfViewController: NSViewController {
         // Disable animations completely
         collectionView.wantsLayer = true
         collectionView.layer?.actions = ["contents": NSNull(), "sublayers": NSNull(), "frame": NSNull(), "bounds": NSNull(), "position": NSNull()]
+        // Enable drag and drop for the entire collection view area
+        collectionView.registerForDraggedTypes([.fileURL, .URL, .string])
         // Remove explicit registration - we'll create cells manually in itemForRepresentedObjectAt
         collectionView.dataSource = self
         collectionView.delegate = self
@@ -376,13 +380,7 @@ class FileShelfViewController: NSViewController {
             tabsContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             tabsContainer.heightAnchor.constraint(equalToConstant: 44),
             
-            // Drop zone
-            dropZoneView.topAnchor.constraint(equalTo: tabsContainer.bottomAnchor, constant: 12),
-            dropZoneView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-            dropZoneView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
-            dropZoneView.heightAnchor.constraint(equalToConstant: 80),
-            
-            // ScrollView - anchor to tabs with small gap when drop zone is hidden
+            // ScrollView - direct connection to tabs
             scrollView.topAnchor.constraint(equalTo: tabsContainer.bottomAnchor, constant: 12),
             scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 8),
             scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -8),
@@ -503,21 +501,8 @@ class FileShelfViewController: NSViewController {
     }
     
     private func updateDropZoneVisibility() {
-        guard isViewLoaded, dropZoneView != nil, collectionView != nil else { return }
-        
-        let shouldShowDropZone = items.isEmpty
-        
-        // When the drop zone is hidden, no additional spacing is needed.
-        // When shown, we don't adjust collection view insets as it doesn't support contentInsets.
-        // Simply hide/show the drop zone without adjusting collection view spacing.
-        NSAnimationContext.runAnimationGroup { context in
-            context.duration = 0.2
-            context.allowsImplicitAnimation = true
-            
-            self.dropZoneView.isHidden = !shouldShowDropZone
-            
-            self.view.layoutSubtreeIfNeeded()
-        }
+        // No longer needed - whole area is now a drop zone
+        // Empty state is shown via different UI (status label)
     }
     
     private func updateStatusLabel() {
@@ -672,21 +657,113 @@ extension FileShelfViewController: NSCollectionViewDelegate {
             }
         }
     }
+    
+    // MARK: - Drop Handling
+    func collectionView(_ collectionView: NSCollectionView, validateDrop draggingInfo: any NSDraggingInfo, proposedIndex proposedDropIndex: UnsafeMutablePointer<Int>, dropOperation proposedDropOperation: UnsafeMutablePointer<NSCollectionView.DropOperation>) -> NSDragOperation {
+        print("🗂️ CollectionView: validateDrop called")
+        if canAcceptDrag(draggingInfo) {
+            print("🗂️ CollectionView: Can accept drag - showing overlay")
+            showDragOverlay(true)
+            proposedDropOperation.pointee = .on
+            return .copy
+        }
+        print("🗂️ CollectionView: Cannot accept drag")
+        return []
+    }
+    
+    func collectionView(_ collectionView: NSCollectionView, acceptDrop draggingInfo: NSDraggingInfo, index: Int, dropOperation: NSCollectionView.DropOperation) -> Bool {
+        print("🗂️ CollectionView: acceptDrop called")
+        showDragOverlay(false)
+        let result = handleDropOperation(draggingInfo)
+        print("🗂️ CollectionView: Drop handled with result: \(result)")
+        return result
+    }
+    
+    func collectionView(_ collectionView: NSCollectionView, draggingExited sender: NSDraggingInfo?) {
+        print("🗂️ CollectionView: draggingExited called")
+        showDragOverlay(false)
+    }
 }
 
-// MARK: - Drop Zone Delegate
-extension FileShelfViewController: DropZoneViewDelegate {
-    func dropZoneView(_ dropZoneView: DropZoneView, didReceiveFiles urls: [URL]) {
-        var newItems: [FileShelfItem] = []
+// MARK: - Drag and Drop Support
+extension FileShelfViewController {
+    func handleDropOperation(_ sender: NSDraggingInfo) -> Bool {
+        print("🗂️ handleDropOperation: Starting drop handling")
+        let pasteboard = sender.draggingPasteboard
+        var urls: [URL] = []
         
-        for url in urls {
-            if let item = createItemFromDroppedURL(url) {
-                newItems.append(item)
+        // Get file URLs
+        if let fileURLs = pasteboard.readObjects(forClasses: [NSURL.self]) as? [URL] {
+            let validURLs = fileURLs.filter { $0.isFileURL }
+            urls.append(contentsOf: validURLs)
+            print("🗂️ handleDropOperation: Found \(validURLs.count) file URLs")
+        }
+        
+        // Handle string paths
+        if let strings = pasteboard.readObjects(forClasses: [NSString.self]) as? [String] {
+            print("🗂️ handleDropOperation: Found \(strings.count) strings")
+            for string in strings {
+                let url = URL(fileURLWithPath: string)
+                if FileManager.default.fileExists(atPath: url.path) {
+                    urls.append(url)
+                    print("🗂️ handleDropOperation: Added string path: \(string)")
+                }
             }
         }
         
-        if !newItems.isEmpty {
-            addItems(newItems)
+        print("🗂️ handleDropOperation: Total URLs to process: \(urls.count)")
+        
+        if !urls.isEmpty {
+            var newItems: [FileShelfItem] = []
+            
+            for url in urls {
+                if let item = createItemFromDroppedURL(url) {
+                    newItems.append(item)
+                    print("🗂️ handleDropOperation: Created item for: \(url.lastPathComponent)")
+                }
+            }
+            
+            print("🗂️ handleDropOperation: Created \(newItems.count) items")
+            
+            if !newItems.isEmpty {
+                addItems(newItems)
+                return true
+            }
+        }
+        
+        print("🗂️ handleDropOperation: No items created, returning false")
+        return false
+    }
+    
+    private func canAcceptDrag(_ sender: NSDraggingInfo) -> Bool {
+        let pasteboard = sender.draggingPasteboard
+        print("🗂️ canAcceptDrag: Checking drag content...")
+        
+        // Check for file URLs
+        if pasteboard.availableType(from: [.fileURL, .URL]) != nil {
+            print("🗂️ canAcceptDrag: Found file URLs - accepting")
+            return true
+        }
+        
+        // Check for string paths
+        if let strings = pasteboard.readObjects(forClasses: [NSString.self]) as? [String] {
+            let hasValidFile = strings.contains { FileManager.default.fileExists(atPath: $0) }
+            print("🗂️ canAcceptDrag: Checked strings, has valid file: \(hasValidFile)")
+            return hasValidFile
+        }
+        
+        print("🗂️ canAcceptDrag: No valid content found")
+        return false
+    }
+    
+    private func showDragOverlay(_ show: Bool) {
+        // Create or update drag overlay visual feedback
+        if show {
+            view.layer?.backgroundColor = AppColors.primary.withAlphaComponent(0.1).cgColor
+            statusLabel.stringValue = "Drop files anywhere!"
+        } else {
+            view.layer?.backgroundColor = AppColors.background.cgColor
+            updateStatusLabel()
         }
     }
     

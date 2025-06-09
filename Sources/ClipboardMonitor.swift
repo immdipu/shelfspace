@@ -55,37 +55,52 @@ class ClipboardMonitor {
         
         var newItems: [FileShelfItem] = []
         
-        // Check for text first (highest priority)
-        if let strings = pasteboard.readObjects(forClasses: [NSString.self]) as? [String] {
-            for string in strings {
-                // Check if it's a file path first
-                let url = URL(fileURLWithPath: string)
-                if FileManager.default.fileExists(atPath: url.path) {
+        // Strategy: Only process ONE type of content per clipboard change
+        // Priority: Files > Images > Text
+        
+        // Check for file URLs first (highest priority)
+        if let urls = pasteboard.readObjects(forClasses: [NSURL.self]) as? [URL] {
+            let fileURLs = urls.filter { $0.isFileURL }
+            if !fileURLs.isEmpty {
+                print("ClipboardMonitor: Found file URLs, processing only files")
+                for url in fileURLs {
                     if let item = createItemFromURL(url) {
                         newItems.append(item)
                     }
-                } else if string.count > 3 && string.count < 10000 { // Reasonable text length
-                    // It's regular text content
-                    let textItem = FileShelfItem(textContent: string, origin: .clipboard)
-                    newItems.append(textItem)
                 }
             }
         }
         
-        // Check for images
-        if let images = pasteboard.readObjects(forClasses: [NSImage.self]) as? [NSImage] {
-            for (index, image) in images.enumerated() {
-                if let item = createItemFromImage(image, index: index) {
-                    newItems.append(item)
+        // Check for images (second priority) - only if no files were found
+        if newItems.isEmpty {
+            if let images = pasteboard.readObjects(forClasses: [NSImage.self]) as? [NSImage] {
+                if !images.isEmpty {
+                    print("ClipboardMonitor: Found images, processing only images")
+                    for (index, image) in images.enumerated() {
+                        if let item = createItemFromImage(image, index: index) {
+                            newItems.append(item)
+                        }
+                    }
                 }
             }
         }
         
-        // Check for file URLs
-        if let urls = pasteboard.readObjects(forClasses: [NSURL.self]) as? [URL] {
-            for url in urls {
-                if let item = createItemFromURL(url) {
-                    newItems.append(item)
+        // Check for text (lowest priority) - only if no files or images were found
+        if newItems.isEmpty {
+            if let strings = pasteboard.readObjects(forClasses: [NSString.self]) as? [String] {
+                print("ClipboardMonitor: Found text, processing text content")
+                for string in strings {
+                    // Check if it's a file path
+                    let url = URL(fileURLWithPath: string)
+                    if FileManager.default.fileExists(atPath: url.path) {
+                        if let item = createItemFromURL(url) {
+                            newItems.append(item)
+                        }
+                    } else if string.count > 3 && string.count < 10000 { // Reasonable text length
+                        // It's regular text content
+                        let textItem = FileShelfItem(textContent: string, origin: .clipboard)
+                        newItems.append(textItem)
+                    }
                 }
             }
         }
