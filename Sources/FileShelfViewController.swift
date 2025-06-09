@@ -335,6 +335,9 @@ class FileShelfViewController: NSViewController {
         collectionView = NSCollectionView()
         collectionView.isSelectable = true
         collectionView.allowsMultipleSelection = true
+        // Disable animations completely
+        collectionView.wantsLayer = true
+        collectionView.layer?.actions = ["contents": NSNull(), "sublayers": NSNull(), "frame": NSNull(), "bounds": NSNull(), "position": NSNull()]
         // Remove explicit registration - we'll create cells manually in itemForRepresentedObjectAt
         collectionView.dataSource = self
         collectionView.delegate = self
@@ -473,12 +476,12 @@ class FileShelfViewController: NSViewController {
         print("FileShelfViewController: updateContent - filtered \(filteredItems.count) items for filter \(currentFilter)")
         
         DispatchQueue.main.async {
-            // Use collection view instead of manual grid for proper mouse handling
-            NSAnimationContext.runAnimationGroup { context in
-                context.duration = 0
-                context.allowsImplicitAnimation = false
-                self.collectionView.reloadData()
-            }
+            // Disable all animations for collection view updates
+            CATransaction.begin()
+            CATransaction.setDisableActions(true)
+            self.collectionView.reloadData()
+            CATransaction.commit()
+            
             self.updateStatusLabel()
             self.updateDropZoneVisibility()
             
