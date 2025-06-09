@@ -50,10 +50,17 @@ class FileShelfItemCell: NSCollectionViewItem {
         containerView.layer?.shadowOffset = NSSize(width: 0, height: 2)
         containerView.layer?.shadowRadius = 4
         containerView.translatesAutoresizingMaskIntoConstraints = false
+        
+        // Prevent container from expanding
+        containerView.setContentHuggingPriority(.required, for: .horizontal)
+        containerView.setContentHuggingPriority(.required, for: .vertical)
+        containerView.setContentCompressionResistancePriority(.required, for: .horizontal)
+        containerView.setContentCompressionResistancePriority(.required, for: .vertical)
+        
         view.addSubview(containerView)
         
         // Thumbnail
-        thumbnailImageView.imageScaling = .scaleProportionallyUpOrDown
+        thumbnailImageView.imageScaling = .scaleAxesIndependently
         thumbnailImageView.wantsLayer = true
         thumbnailImageView.layer?.cornerRadius = 8
         thumbnailImageView.layer?.masksToBounds = true
@@ -65,7 +72,7 @@ class FileShelfItemCell: NSCollectionViewItem {
         nameLabel.font = NSFont.systemFont(ofSize: 11, weight: .medium)
         nameLabel.textColor = AppColors.text
         nameLabel.alignment = .center
-        nameLabel.lineBreakMode = .byTruncatingMiddle
+        nameLabel.lineBreakMode = .byTruncatingTail
         nameLabel.maximumNumberOfLines = 1
         nameLabel.isEditable = false
         nameLabel.isBordered = false
@@ -83,7 +90,7 @@ class FileShelfItemCell: NSCollectionViewItem {
         sizeLabel.translatesAutoresizingMaskIntoConstraints = false
         containerView.addSubview(sizeLabel)
         
-        // Origin label
+        // Origin label - Keep but will hide it
         originLabel.font = NSFont.systemFont(ofSize: 8)
         originLabel.textColor = AppColors.secondaryText
         originLabel.alignment = .center
@@ -91,6 +98,7 @@ class FileShelfItemCell: NSCollectionViewItem {
         originLabel.isBordered = false
         originLabel.backgroundColor = NSColor.clear
         originLabel.translatesAutoresizingMaskIntoConstraints = false
+        originLabel.isHidden = true
         containerView.addSubview(originLabel)
         
         // Overlay view for action buttons
@@ -106,32 +114,32 @@ class FileShelfItemCell: NSCollectionViewItem {
         
         // Layout constraints
         NSLayoutConstraint.activate([
-            // Container
-            containerView.topAnchor.constraint(equalTo: view.topAnchor, constant: 2),
-            containerView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 2),
-            containerView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -2),
-            containerView.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -2),
+            // Container - Use explicit size constraints instead of margins
+            containerView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            containerView.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+            containerView.widthAnchor.constraint(equalToConstant: 116),  // Fixed width
+            containerView.heightAnchor.constraint(equalToConstant: 136), // Fixed height
             
-            // Thumbnail
-            thumbnailImageView.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 4),
-            thumbnailImageView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 6),
-            thumbnailImageView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -6),
-            thumbnailImageView.heightAnchor.constraint(equalToConstant: 80),
+            // Thumbnail - fill the entire width with small margins
+            thumbnailImageView.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 2),
+            thumbnailImageView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 4),
+            thumbnailImageView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -4),
+            thumbnailImageView.heightAnchor.constraint(equalToConstant: 95),
             
             // Name label
-            nameLabel.topAnchor.constraint(equalTo: thumbnailImageView.bottomAnchor, constant: 2),
-            nameLabel.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 2),
-            nameLabel.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -2),
+            nameLabel.topAnchor.constraint(equalTo: thumbnailImageView.bottomAnchor, constant: 1),
+            nameLabel.centerXAnchor.constraint(equalTo: containerView.centerXAnchor),
+            nameLabel.widthAnchor.constraint(equalToConstant: 112),  // Fixed width
             
             // Size label
-            sizeLabel.topAnchor.constraint(equalTo: nameLabel.bottomAnchor, constant: 1),
-            sizeLabel.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 2),
-            sizeLabel.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -2),
+            sizeLabel.topAnchor.constraint(equalTo: nameLabel.bottomAnchor, constant: 2),  // Reduced from 4 to 2
+            sizeLabel.centerXAnchor.constraint(equalTo: containerView.centerXAnchor),
+            sizeLabel.widthAnchor.constraint(equalToConstant: 112),  // Fixed width
             
-            // Origin label
+            // Origin label - Keep constraints but it's hidden
             originLabel.topAnchor.constraint(equalTo: sizeLabel.bottomAnchor, constant: 1),
-            originLabel.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 2),
-            originLabel.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -2),
+            originLabel.centerXAnchor.constraint(equalTo: containerView.centerXAnchor),
+            originLabel.widthAnchor.constraint(equalToConstant: 112),  // Fixed width
             
             // Overlay
             overlayView.topAnchor.constraint(equalTo: thumbnailImageView.topAnchor),
@@ -202,43 +210,75 @@ class FileShelfItemCell: NSCollectionViewItem {
     }
     
     func configure(with item: FileShelfItem, delegate: FileShelfItemCellDelegate?) {
-        print("=== CELL CONFIGURE DEBUG ===")
-        print("Configuring cell with item: \(item.displayName)")
-        print("Cell view frame: \(view.frame)")
-        print("Container view frame: \(containerView.frame)")
-        
-        self.fileItem = item
-        self.delegate = delegate
-        
-        nameLabel.stringValue = item.displayName
-        sizeLabel.stringValue = item.formattedFileSize
-        originLabel.stringValue = item.origin.displayName
-        
-        // Update pin button appearance
-        let pinImageName = item.isPinned ? "pin.fill" : "pin"
-        pinButton.image = NSImage(systemSymbolName: pinImageName, accessibilityDescription: item.isPinned ? "Unpin" : "Pin")
-        
-        // Load thumbnail
-        loadThumbnail(for: item)
-        
-        // Update container appearance for pinned items
-        if item.isPinned {
-            containerView.layer?.borderColor = AppColors.primary.cgColor
-            containerView.layer?.borderWidth = 2
-            containerView.layer?.shadowOpacity = 0.2
-        } else {
-            containerView.layer?.borderColor = AppColors.separator.cgColor
-            containerView.layer?.borderWidth = 1
-            containerView.layer?.shadowOpacity = 0.1
-        }
-        
-        // Force layout update
-        view.needsLayout = true
-        view.layoutSubtreeIfNeeded()
-        
-        print("After configure - Cell view frame: \(view.frame)")
-        print("After configure - Container view frame: \(containerView.frame)")
-        print("=== END CELL CONFIGURE DEBUG ===")
+        // Disable animations during configuration
+        NSAnimationContext.runAnimationGroup({ context in
+            context.duration = 0
+            context.allowsImplicitAnimation = false
+            
+            print("=== CELL CONFIGURE DEBUG ===")
+            print("Configuring cell with item: \(item.displayName)")
+            print("Cell view frame: \(view.frame)")
+            print("Container view frame: \(containerView.frame)")
+            
+            self.fileItem = item
+            self.delegate = delegate
+            
+            // Create a better display name
+            let displayName: String
+            if item.isImage {
+                // For images, use original name if available, otherwise create a timestamp name
+                if let fileURL = item.fileURL, !fileURL.lastPathComponent.isEmpty {
+                    displayName = fileURL.lastPathComponent
+                } else {
+                    let formatter = DateFormatter()
+                    formatter.dateFormat = "MMM dd, HH:mm"
+                    displayName = "Image \(formatter.string(from: item.dateAdded))"
+                }
+            } else if item.isText {
+                // For text, create a short preview or timestamp name
+                if let textContent = item.textContent, !textContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    let preview = String(textContent.prefix(15)).trimmingCharacters(in: .whitespacesAndNewlines)
+                    displayName = preview.isEmpty ? "Text Note" : preview
+                } else {
+                    let formatter = DateFormatter()
+                    formatter.dateFormat = "MMM dd, HH:mm"
+                    displayName = "Text \(formatter.string(from: item.dateAdded))"
+                }
+            } else {
+                // For other files, use the file name
+                displayName = item.displayName
+            }
+            
+            nameLabel.stringValue = displayName
+            sizeLabel.stringValue = item.formattedFileSize
+            // Don't set origin label since it's hidden
+            
+            // Update pin button appearance
+            let pinImageName = item.isPinned ? "pin.fill" : "pin"
+            pinButton.image = NSImage(systemSymbolName: pinImageName, accessibilityDescription: item.isPinned ? "Unpin" : "Pin")
+            
+            // Load thumbnail
+            loadThumbnail(for: item)
+            
+            // Update container appearance for pinned items
+            if item.isPinned {
+                containerView.layer?.borderColor = AppColors.primary.cgColor
+                containerView.layer?.borderWidth = 2
+                containerView.layer?.shadowOpacity = 0.2
+            } else {
+                containerView.layer?.borderColor = AppColors.separator.cgColor
+                containerView.layer?.borderWidth = 1
+                containerView.layer?.shadowOpacity = 0.1
+            }
+            
+            // Force layout update
+            view.needsLayout = true
+            view.layoutSubtreeIfNeeded()
+            
+            print("After configure - Cell view frame: \(view.frame)")
+            print("After configure - Container view frame: \(containerView.frame)")
+            print("=== END CELL CONFIGURE DEBUG ===")
+        })
     }
     
     private func loadThumbnail(for item: FileShelfItem) {
@@ -259,7 +299,11 @@ class FileShelfItemCell: NSCollectionViewItem {
                 if let image = NSImage(contentsOf: fileURL) {
                     let thumbnail = self.createThumbnail(from: image, size: NSSize(width: 80, height: 80))
                     DispatchQueue.main.async {
-                        self.thumbnailImageView.image = thumbnail
+                        NSAnimationContext.runAnimationGroup({ context in
+                            context.duration = 0
+                            context.allowsImplicitAnimation = false
+                            self.thumbnailImageView.image = thumbnail
+                        })
                     }
                 }
             }
@@ -341,18 +385,14 @@ class FileShelfItemCell: NSCollectionViewItem {
     
     override func mouseEntered(with event: NSEvent) {
         super.mouseEntered(with: event)
-        NSAnimationContext.runAnimationGroup { context in
-            context.duration = 0.2
-            overlayView.animator().alphaValue = 1.0
-        }
+        // Removed animation - immediate show
+        overlayView.alphaValue = 1.0
     }
     
     override func mouseExited(with event: NSEvent) {
         super.mouseExited(with: event)
-        NSAnimationContext.runAnimationGroup { context in
-            context.duration = 0.2
-            overlayView.animator().alphaValue = 0.0
-        }
+        // Removed animation - immediate hide
+        overlayView.alphaValue = 0.0
     }
     
     override func mouseDown(with event: NSEvent) {
@@ -370,9 +410,6 @@ class FileShelfItemCell: NSCollectionViewItem {
     @objc private func copyButtonClicked() {
         guard let item = fileItem else { return }
         delegate?.fileShelfItemCell(self, didRequestCopyItem: item)
-        
-        // Visual feedback
-        animateButtonPress(copyButton)
     }
     
     @objc private func pinButtonClicked() {
@@ -382,27 +419,11 @@ class FileShelfItemCell: NSCollectionViewItem {
         // Update pin button immediately
         let pinImageName = item.isPinned ? "pin" : "pin.fill"
         pinButton.image = NSImage(systemSymbolName: pinImageName, accessibilityDescription: item.isPinned ? "Pin" : "Unpin")
-        
-        animateButtonPress(pinButton)
     }
     
     @objc private func deleteButtonClicked() {
         guard let item = fileItem else { return }
         delegate?.fileShelfItemCell(self, didRequestDeleteItem: item)
-        
-        animateButtonPress(deleteButton)
-    }
-    
-    private func animateButtonPress(_ button: NSButton) {
-        NSAnimationContext.runAnimationGroup { context in
-            context.duration = 0.1
-            button.animator().alphaValue = 0.5
-        } completionHandler: {
-            NSAnimationContext.runAnimationGroup { context in
-                context.duration = 0.1
-                button.animator().alphaValue = 1.0
-            }
-        }
     }
 }
 
