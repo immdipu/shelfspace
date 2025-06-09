@@ -377,13 +377,13 @@ class FileShelfViewController: NSViewController {
             tabsContainer.heightAnchor.constraint(equalToConstant: 44),
             
             // Drop zone
-            dropZoneView.topAnchor.constraint(equalTo: tabsContainer.bottomAnchor, constant: 8),
+            dropZoneView.topAnchor.constraint(equalTo: tabsContainer.bottomAnchor, constant: 12),
             dropZoneView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
             dropZoneView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
             dropZoneView.heightAnchor.constraint(equalToConstant: 80),
             
-            // ScrollView
-            scrollView.topAnchor.constraint(equalTo: dropZoneView.bottomAnchor, constant: 8),
+            // ScrollView - anchor to tabs with small gap when drop zone is hidden
+            scrollView.topAnchor.constraint(equalTo: tabsContainer.bottomAnchor, constant: 12),
             scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 8),
             scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -8),
             scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -8),
