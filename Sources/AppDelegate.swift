@@ -21,7 +21,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         
         if let button = statusBarItem.button {
             // Use SF Symbol for the menu bar icon
-            button.image = NSImage(systemSymbolName: "tray.2", accessibilityDescription: "ShelfSpace")
+            button.image = NSImage(systemSymbolName: "cube.box", accessibilityDescription: "ShelfSpace")
             button.action = #selector(togglePopover(_:))
             button.target = self
         }
