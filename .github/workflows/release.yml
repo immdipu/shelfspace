@@ -1,0 +1,125 @@
+name: Build and Release ShelfSpace
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., 1.0.0)'
+        required: true
+        default: '1.0.0'
+
+jobs:
+  build-and-release:
+    runs-on: macos-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Xcode
+      uses: maxim-lobanov/setup-xcode@v1
+      with:
+        xcode-version: latest-stable
+        
+    - name: Update version if manual trigger
+      if: github.event_name == 'workflow_dispatch'
+      run: |
+        sed -i '' 's/APP_VERSION=".*"/APP_VERSION="${{ github.event.inputs.version }}"/' version.conf
+        
+    - name: Make scripts executable
+      run: |
+        chmod +x build.sh
+        chmod +x create-icons.sh
+        chmod +x create-dmg.sh
+        chmod +x release.sh
+        
+    - name: Build ShelfSpace
+      run: ./release.sh
+      
+    - name: Get version
+      id: version
+      run: |
+        source version.conf
+        echo "version=$APP_VERSION" >> $GITHUB_OUTPUT
+        echo "app_name=$APP_NAME" >> $GITHUB_OUTPUT
+        
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: v${{ steps.version.outputs.version }}
+        release_name: ShelfSpace v${{ steps.version.outputs.version }}
+        body: |
+          ## ShelfSpace v${{ steps.version.outputs.version }}
+          
+          A lightweight macOS menu bar application for temporary file and image management.
+          
+          ### 🚀 What's New
+          - Lightweight temporary file and clipboard manager
+          - Drag & drop files up to 200MB
+          - Automatic screenshot detection
+          - Copy/paste text and images
+          - Smart file categorization
+          - Pin important items
+          
+          ### 📦 Installation
+          1. Download `ShelfSpace-${{ steps.version.outputs.version }}.dmg` below
+          2. Open the DMG file
+          3. Drag ShelfSpace.app to your Applications folder
+          4. Launch from Applications or Launchpad
+          
+          ### 🔐 Security Note
+          Since this app is not notarized, you may need to:
+          1. Right-click the app and select "Open"
+          2. Grant necessary permissions when prompted
+          
+          ### 📋 System Requirements
+          - macOS 13.0 (Ventura) or later
+          - Intel or Apple Silicon Mac
+          
+          ### 🛡️ File Verification
+          You can verify the download integrity using the provided SHA256 checksum:
+          ```bash
+          shasum -a 256 -c ShelfSpace-${{ steps.version.outputs.version }}.dmg.sha256
+          ```
+          
+          ---
+          
+          For support and bug reports, please visit our [GitHub Issues](https://github.com/immdipu/shelfspace/issues).
+        draft: false
+        prerelease: false
+        
+    - name: Upload DMG
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./dist/${{ steps.version.outputs.app_name }}-${{ steps.version.outputs.version }}.dmg
+        asset_name: ${{ steps.version.outputs.app_name }}-${{ steps.version.outputs.version }}.dmg
+        asset_content_type: application/x-apple-diskimage
+        
+    - name: Upload SHA256 Checksum
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./dist/${{ steps.version.outputs.app_name }}-${{ steps.version.outputs.version }}.dmg.sha256
+        asset_name: ${{ steps.version.outputs.app_name }}-${{ steps.version.outputs.version }}.dmg.sha256
+        asset_content_type: text/plain
+        
+    - name: Upload Release Info
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./dist/RELEASE_INFO.txt
+        asset_name: RELEASE_INFO.txt
+        asset_content_type: text/plain

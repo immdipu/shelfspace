@@ -29,5 +29,8 @@ xcuserdata/
 tmp/
 temp/
 
-# ShelfSpace specific
-*.dmg 
+# ShelfSpace specific  
+# Keep dist folder but ignore individual DMG files during development
+# DMG files will be created during release process
+dist/*.dmg
+dist/*.sha256 

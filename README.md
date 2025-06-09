@@ -47,11 +47,13 @@ A lightweight macOS menu bar application that acts as a temporary file and image
 
 ### Option 1: Download Release (Recommended)
 
-1. Go to [Releases](https://github.com/immdipu/shelfspace/releases)
-2. Download the latest `ShelfSpace-x.x.x.dmg` file
-3. Open the DMG and drag ShelfSpace to Applications
-4. Launch from Applications folder
-5. On first launch, right-click and select "Open" if the app is unsigned
+1. **Go to [Releases](https://github.com/immdipu/shelfspace/releases)**
+2. **Download** the latest `ShelfSpace-x.x.x.dmg` file
+3. **Open** the DMG and drag ShelfSpace to Applications
+4. **Launch** from Applications folder
+5. **Important**: On first launch, right-click and select "Open" (required for unsigned apps)
+
+> **🔐 Security Note**: Since this app is not notarized, macOS will show a security warning. This is normal for open-source apps. Follow step 5 to bypass this safely.
 
 ### Option 2: Build from Source
 
