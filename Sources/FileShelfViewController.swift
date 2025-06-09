@@ -2,17 +2,43 @@ import Cocoa
 
 // Custom circular button class
 class CircularButton: NSButton {
+    override func awakeFromNib() {
+        super.awakeFromNib()
+        setupCircularButton()
+    }
+    
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        setupCircularButton()
+    }
+    
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        setupCircularButton()
+    }
+    
+    private func setupCircularButton() {
+        wantsLayer = true
+        layer?.masksToBounds = true
+    }
+    
     override func layout() {
         super.layout()
         // Ensure the button is always perfectly circular
-        let radius = min(bounds.width, bounds.height) / 2.0
-        layer?.cornerRadius = radius
+        let size = min(bounds.width, bounds.height)
+        layer?.cornerRadius = size / 2.0
     }
     
     override var intrinsicContentSize: NSSize {
         let size = super.intrinsicContentSize
-        let maxDimension = max(size.width, size.height)
+        let maxDimension = max(size.width, size.height, 24) // Minimum 24x24
         return NSSize(width: maxDimension, height: maxDimension)
+    }
+    
+    override func setFrameSize(_ newSize: NSSize) {
+        // Force square frame
+        let size = max(newSize.width, newSize.height)
+        super.setFrameSize(NSSize(width: size, height: size))
     }
 }
 
@@ -232,7 +258,6 @@ class FileShelfViewController: NSViewController {
         quitButton.isBordered = false
         quitButton.bezelStyle = .shadowlessSquare
         quitButton.contentTintColor = NSColor.white
-        quitButton.wantsLayer = true
         quitButton.layer?.backgroundColor = NSColor.systemRed.cgColor
         quitButton.target = self
         quitButton.action = #selector(quitApp)
@@ -263,10 +288,9 @@ class FileShelfViewController: NSViewController {
             titleLabel.topAnchor.constraint(equalTo: headerView.topAnchor, constant: 12),
             
             quitButton.trailingAnchor.constraint(equalTo: headerView.trailingAnchor, constant: -16),
-            quitButton.topAnchor.constraint(equalTo: headerView.topAnchor, constant: 8),
-            quitButton.widthAnchor.constraint(equalToConstant: 32),
-            quitButton.heightAnchor.constraint(equalToConstant: 32),
-            quitButton.widthAnchor.constraint(equalTo: quitButton.heightAnchor), // Ensure perfect square
+            quitButton.topAnchor.constraint(equalTo: headerView.topAnchor, constant: 12),
+            quitButton.widthAnchor.constraint(equalToConstant: 24),
+            quitButton.heightAnchor.constraint(equalToConstant: 24),
             
             aboutButton.trailingAnchor.constraint(equalTo: quitButton.leadingAnchor, constant: -8),
             aboutButton.topAnchor.constraint(equalTo: headerView.topAnchor, constant: 8),
