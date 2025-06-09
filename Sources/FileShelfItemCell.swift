@@ -21,6 +21,15 @@ class FileShelfItemCell: NSCollectionViewItem {
     
     private var fileItem: FileShelfItem?
     
+    // Default initializer for collection view registration
+    override init(nibName nibNameOrNil: NSNib.Name?, bundle nibBundleOrNil: Bundle?) {
+        super.init(nibName: nibNameOrNil, bundle: nibBundleOrNil)
+    }
+    
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+    }
+    
     override func loadView() {
         view = NSView(frame: NSRect(x: 0, y: 0, width: 120, height: 140))
         setupUI()

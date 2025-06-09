@@ -247,36 +247,37 @@ class FileShelfViewController: NSViewController {
     }
     
     private func setupCollectionView() {
+        // Prevent multiple setups
+        if scrollView != nil && collectionView != nil {
+            print("Collection view already set up, skipping...")
+            return
+        }
+        
         print("Setting up collection view...")
         
+        // Setup collection view
         collectionView = NSCollectionView()
         collectionView.isSelectable = true
         collectionView.allowsMultipleSelection = true
-        collectionView.register(FileShelfItemCell.self, forItemWithIdentifier: NSUserInterfaceItemIdentifier("FileShelfItemCell"))
+        // Remove explicit registration - we'll create cells manually in itemForRepresentedObjectAt
         collectionView.dataSource = self
         collectionView.delegate = self
-        collectionView.translatesAutoresizingMaskIntoConstraints = false
+        
+        // Setup scroll view
         scrollView = NSScrollView()
         scrollView.documentView = collectionView
         scrollView.hasVerticalScroller = true
-        scrollView.wantsLayer = true
-        scrollView.layer?.backgroundColor = NSColor.red.cgColor // Temporary color for visibility debugging
         scrollView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(scrollView)
         
+        // Setup layout
         let layout = NSCollectionViewFlowLayout()
-        layout.itemSize = NSSize(width: 120, height: 140) // Increased size
+        layout.itemSize = NSSize(width: 120, height: 140)
         layout.minimumInteritemSpacing = 12
         layout.minimumLineSpacing = 12
         layout.sectionInset = NSEdgeInsets(top: 12, left: 12, bottom: 12, right: 12)
         
         collectionView.collectionViewLayout = layout
-        
-        // Explicitly set the frame of collectionView to ensure it has size
-        collectionView.frame = NSRect(x: 0, y: 0, width: 404, height: 432)
-        
-        // Explicitly set frame for NSScrollView to ensure visibility
-        scrollView.frame = NSRect(x: 0, y: 0, width: 420, height: 488)
         
         print("Collection view setup complete:")
         print("  - CollectionView: \(collectionView)")
@@ -284,33 +285,6 @@ class FileShelfViewController: NSViewController {
         print("  - Layout: \(layout)")
         print("  - DataSource: \(collectionView.dataSource != nil ? "SET" : "NIL")")
         print("  - Delegate: \(collectionView.delegate != nil ? "SET" : "NIL")")
-        
-        // Update constraints to apply directly to collectionView instead of scrollView
-        let collectionViewTop = collectionView.topAnchor.constraint(equalTo: tabsContainer.bottomAnchor, constant: 10)
-        let collectionViewLeading = collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 8)
-        let collectionViewTrailing = collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -8)
-        let collectionViewBottom = collectionView.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -8)
-
-        NSLayoutConstraint.activate([
-            collectionViewTop,
-            collectionViewLeading,
-            collectionViewTrailing,
-            collectionViewBottom
-        ])
-
-        print("Constraints applied for collectionView:")
-        print("  - Top: \(collectionViewTop)")
-        print("  - Leading: \(collectionViewLeading)")
-        print("  - Trailing: \(collectionViewTrailing)")
-        print("  - Bottom: \(collectionViewBottom)")
-        
-        // Additional debug logging for view hierarchy and visibility
-        print("CollectionView isHidden: \(collectionView.isHidden)")
-        print("CollectionView superview: \(collectionView.superview?.description ?? "none")")
-        
-        // Adjust scroll view content offset to ensure collection view is visible
-        scrollView.contentView.scroll(to: NSPoint(x: 0, y: 0))
-        scrollView.reflectScrolledClipView(scrollView.contentView)
     }
     
     private func setupConstraints() {
@@ -334,11 +308,17 @@ class FileShelfViewController: NSViewController {
             dropZoneView.heightAnchor.constraint(equalToConstant: 80),
             
             // ScrollView
-            scrollView.topAnchor.constraint(equalTo: tabsContainer.bottomAnchor, constant: 8),
+            scrollView.topAnchor.constraint(equalTo: dropZoneView.bottomAnchor, constant: 8),
             scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 8),
             scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -8),
-            scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -8)
+            scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -8),
+            // Force minimum dimensions
+            scrollView.widthAnchor.constraint(greaterThanOrEqualToConstant: 300),
+            scrollView.heightAnchor.constraint(greaterThanOrEqualToConstant: 200)
         ])
+        
+        // Force immediate layout to resolve constraints
+        view.layoutSubtreeIfNeeded()
         
         // Debug constraints
         print("Constraints applied for scrollView:")
@@ -346,6 +326,7 @@ class FileShelfViewController: NSViewController {
         print("  - Leading: \(scrollView.leadingAnchor)")
         print("  - Trailing: \(scrollView.trailingAnchor)")
         print("  - Bottom: \(scrollView.bottomAnchor)")
+        print("After layout - ScrollView frame: \(scrollView.frame)")
     }
     
     @objc private func tabButtonClicked(_ sender: NSButton) {
@@ -454,11 +435,6 @@ class FileShelfViewController: NSViewController {
             context.allowsImplicitAnimation = true
             
             self.dropZoneView.isHidden = !shouldShowDropZone
-            
-            // When the drop zone is hidden, the scroll view's content inset is reduced.
-            // When shown, the inset is increased to make space for it.
-            let topPadding = shouldShowDropZone ? (self.dropZoneView.frame.height + 16) : 0
-            self.scrollView.contentInsets.top = topPadding
             
             self.view.layoutSubtreeIfNeeded()
         }
@@ -583,10 +559,14 @@ extension FileShelfViewController: NSCollectionViewDataSource {
     
     func collectionView(_ collectionView: NSCollectionView, itemForRepresentedObjectAt indexPath: IndexPath) -> NSCollectionViewItem {
         print("CollectionView: creating cell for item \(indexPath.item) in section \(indexPath.section)")
-        let cell = collectionView.makeItem(withIdentifier: NSUserInterfaceItemIdentifier("FileShelfItemCell"), for: indexPath) as! FileShelfItemCell
+        
+        // Create FileShelfItemCell directly without registration
+        let cell = FileShelfItemCell()
         let item = filteredItems[indexPath.item]
+        
         print("CollectionView: configuring cell with item: \(item.displayName) (type: \(item.itemType))")
         cell.configure(with: item, delegate: self)
+        
         return cell
     }
 }
