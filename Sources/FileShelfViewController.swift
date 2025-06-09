@@ -1,5 +1,21 @@
 import Cocoa
 
+// Custom circular button class
+class CircularButton: NSButton {
+    override func layout() {
+        super.layout()
+        // Ensure the button is always perfectly circular
+        let radius = min(bounds.width, bounds.height) / 2.0
+        layer?.cornerRadius = radius
+    }
+    
+    override var intrinsicContentSize: NSSize {
+        let size = super.intrinsicContentSize
+        let maxDimension = max(size.width, size.height)
+        return NSSize(width: maxDimension, height: maxDimension)
+    }
+}
+
 enum ContentFilter: String, CaseIterable {
     case all = "All"
     case images = "Images"
@@ -210,11 +226,14 @@ class FileShelfViewController: NSViewController {
         statusLabel.translatesAutoresizingMaskIntoConstraints = false
         headerView.addSubview(statusLabel)
         
-        // Quit button
-        quitButton = NSButton()
-        quitButton.image = NSImage(systemSymbolName: "xmark.circle", accessibilityDescription: "Quit")
+        // Quit button - Red power button that actually quits
+        quitButton = CircularButton()
+        quitButton.image = NSImage(systemSymbolName: "power", accessibilityDescription: "Quit ShelfSpace")
         quitButton.isBordered = false
         quitButton.bezelStyle = .shadowlessSquare
+        quitButton.contentTintColor = NSColor.white
+        quitButton.wantsLayer = true
+        quitButton.layer?.backgroundColor = NSColor.systemRed.cgColor
         quitButton.target = self
         quitButton.action = #selector(quitApp)
         quitButton.translatesAutoresizingMaskIntoConstraints = false
@@ -230,12 +249,7 @@ class FileShelfViewController: NSViewController {
         aboutButton.translatesAutoresizingMaskIntoConstraints = false
         headerView.addSubview(aboutButton)
         
-        // Test button for debugging
-        let testButton = NSButton(title: "Test", target: self, action: #selector(addTestItem))
-        testButton.bezelStyle = .rounded
-        testButton.font = NSFont.systemFont(ofSize: 11)
-        testButton.translatesAutoresizingMaskIntoConstraints = false
-        headerView.addSubview(testButton)
+
         
         // Clear all button
         clearAllButton = NSButton(title: "Clear", target: self, action: #selector(clearAllItems))
@@ -252,16 +266,14 @@ class FileShelfViewController: NSViewController {
             quitButton.topAnchor.constraint(equalTo: headerView.topAnchor, constant: 8),
             quitButton.widthAnchor.constraint(equalToConstant: 32),
             quitButton.heightAnchor.constraint(equalToConstant: 32),
+            quitButton.widthAnchor.constraint(equalTo: quitButton.heightAnchor), // Ensure perfect square
             
             aboutButton.trailingAnchor.constraint(equalTo: quitButton.leadingAnchor, constant: -8),
             aboutButton.topAnchor.constraint(equalTo: headerView.topAnchor, constant: 8),
             aboutButton.widthAnchor.constraint(equalToConstant: 32),
             aboutButton.heightAnchor.constraint(equalToConstant: 32),
             
-            testButton.trailingAnchor.constraint(equalTo: aboutButton.leadingAnchor, constant: -8),
-            testButton.centerYAnchor.constraint(equalTo: titleLabel.centerYAnchor),
-            
-            clearAllButton.trailingAnchor.constraint(equalTo: testButton.leadingAnchor, constant: -8),
+            clearAllButton.trailingAnchor.constraint(equalTo: aboutButton.leadingAnchor, constant: -8),
             clearAllButton.centerYAnchor.constraint(equalTo: titleLabel.centerYAnchor),
             
             statusLabel.leadingAnchor.constraint(equalTo: titleLabel.leadingAnchor),
@@ -595,17 +607,7 @@ class FileShelfViewController: NSViewController {
         NSApplication.shared.terminate(nil)
     }
     
-    @objc private func addTestItem() {
-        print("=== MANUAL TEST: Adding test items ===")
-        
-        let testItems = [
-            FileShelfItem(textContent: "Test text content for debugging UI", origin: .clipboard),
-            FileShelfItem(textContent: "Another test item to verify collection view", origin: .clipboard)
-        ]
-        
-        print("Manual test: Created \(testItems.count) test items")
-        addItems(testItems)
-    }
+
 }
 
 // MARK: - Collection View Data Source

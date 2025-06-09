@@ -11,6 +11,7 @@ rm -rf .build
 rm -rf ShelfSpace.app
 
 # Build with Swift Package Manager
+export DEVELOPER_DIR=/Library/Developer/CommandLineTools
 swift build -c release
 
 # Create app bundle structure

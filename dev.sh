@@ -7,10 +7,12 @@ set -e
 case "$1" in
     "build")
         echo "🔨 Building in debug mode..."
+        export DEVELOPER_DIR=/Library/Developer/CommandLineTools
         swift build
         ;;
     "run")
         echo "🚀 Building and running ShelfSpace..."
+        export DEVELOPER_DIR=/Library/Developer/CommandLineTools
         swift build
         .build/debug/ShelfSpace
         ;;
@@ -39,6 +41,7 @@ case "$1" in
         ;;
     "debug")
         echo "🐛 Starting with debugging..."
+        export DEVELOPER_DIR=/Library/Developer/CommandLineTools
         swift build
         lldb .build/debug/ShelfSpace
         ;;
