@@ -1,8 +1,8 @@
-# FileShelf 📁
+# ShelfSpace 📁
 
-A lightweight macOS menu bar application that acts as a temporary file and image shelf, inspired by apps like Dropover. FileShelf provides a minimal, clean experience for managing temporary files, images, and screenshots.
+A lightweight macOS menu bar application that acts as a temporary file and image shelf, inspired by apps like Dropover. ShelfSpace provides a minimal, clean experience for managing temporary files, images, and screenshots.
 
-![FileShelf Demo](https://img.shields.io/badge/Platform-macOS%2013%2B-blue)
+![ShelfSpace Demo](https://img.shields.io/badge/Platform-macOS%2013%2B-blue)
 ![Swift](https://img.shields.io/badge/Swift-5.9-orange)
 ![License](https://img.shields.io/badge/License-MIT-green)
 
@@ -43,37 +43,44 @@ A lightweight macOS menu bar application that acts as a temporary file and image
 - Xcode Command Line Tools
 - Swift 5.9+
 
-### Building from Source
+## 📦 Installation
+
+### Option 1: Download Release (Recommended)
+
+1. Go to [Releases](https://github.com/immdipu/shelfspace/releases)
+2. Download the latest `ShelfSpace-x.x.x.dmg` file
+3. Open the DMG and drag ShelfSpace to Applications
+4. Launch from Applications folder
+5. On first launch, right-click and select "Open" if the app is unsigned
+
+### Option 2: Build from Source
 
 1. **Clone the repository**:
 
    ```bash
-   git clone <repository-url>
-   cd macapp
+   git clone https://github.com/immdipu/shelfspace.git
+   cd shelfspace
    ```
 
-2. **Make the build script executable**:
-
-   ```bash
-   chmod +x build.sh
-   ```
-
-3. **Build the application**:
+2. **Quick build for testing**:
 
    ```bash
    ./build.sh
+   open ShelfSpace.app
    ```
 
-4. **Run the app**:
+3. **Or create complete release package**:
 
    ```bash
-   open FileShelf.app
+   ./release.sh
    ```
 
-5. **Install to Applications** (optional):
+4. **Install to Applications** (optional):
    ```bash
-   cp -r FileShelf.app /Applications/
+   cp -r ShelfSpace.app /Applications/
    ```
+
+For detailed build instructions, see [BUILD.md](BUILD.md).
 
 ### Development Setup
 
@@ -96,7 +103,7 @@ For development in VS Code:
 
 ### Getting Started
 
-1. Launch FileShelf - it will appear in your menu bar as a tray icon
+1. Launch ShelfSpace - it will appear in your menu bar as a tray icon
 2. Click the menu bar icon to open the file shelf panel
 3. Start dropping files or copying images to populate your shelf
 

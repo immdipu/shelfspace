@@ -558,8 +558,10 @@ class FileShelfViewController: NSViewController {
     
     @objc private func showAbout() {
         let alert = NSAlert()
-        alert.messageText = "ShelfSpace"
+        alert.messageText = AppDelegate.appName
         alert.informativeText = """
+        Version \(AppDelegate.appVersion) (Build \(AppDelegate.buildNumber))
+        
         A lightweight temporary file and clipboard manager for macOS.
         
         Features:
@@ -569,7 +571,7 @@ class FileShelfViewController: NSViewController {
         • Smart file categorization
         • Pin important items
         
-        Created by Dipu
+        \(AppDelegate.copyright)
         """
         
         alert.addButton(withTitle: "Visit GitHub")

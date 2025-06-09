@@ -5,6 +5,24 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var popover: NSPopover!
     var fileShelfViewController: FileShelfViewController!
     var clipboardMonitor: ClipboardMonitor!
+    var window: NSWindow!
+    
+    // App version information
+    static var appVersion: String {
+        return Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0.0"
+    }
+    
+    static var buildNumber: String {
+        return Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "1"
+    }
+    
+    static var appName: String {
+        return Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String ?? "ShelfSpace"
+    }
+    
+    static var copyright: String {
+        return Bundle.main.object(forInfoDictionaryKey: "NSHumanReadableCopyright") as? String ?? "Copyright © 2024 Dipu Chaurasiya"
+    }
     
     func applicationDidFinishLaunching(_ notification: Notification) {
         setupMenuBar()
