@@ -1,0 +1,33 @@
+# Swift Package Manager
+.build/
+Packages/
+Package.resolved
+
+# App Bundle
+*.app
+
+# Xcode
+*.xcodeproj
+*.xcworkspace
+*.xcodescheme
+DerivedData/
+xcuserdata/
+
+# macOS
+.DS_Store
+*.swp
+*.swo
+
+# VS Code
+.vscode/settings.json.local
+
+# Build artifacts
+*.dSYM
+*.log
+
+# Temporary files
+tmp/
+temp/
+
+# ShelfSpace specific
+*.dmg 
