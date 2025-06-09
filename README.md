@@ -64,18 +64,28 @@ A lightweight macOS menu bar application that acts as a temporary file and image
    cd shelfspace
    ```
 
-2. **Quick build for testing**:
+2. **Quick build and run**:
 
    ```bash
+   # Using Makefile (recommended)
+   make run
+   
+   # Or using build script directly
    ./build.sh
    open ShelfSpace.app
    ```
 
-3. **Or create complete release package**:
+3. **Create complete release package**:
 
    ```bash
+   # Using Makefile (recommended)
+   make release
+   
+   # Or using release script directly
    ./release.sh
    ```
+
+> **💡 Tip**: Use `make help` to see all available build commands and workflows.
 
 4. **Install to Applications** (optional):
    ```bash
