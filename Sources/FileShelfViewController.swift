@@ -16,11 +16,12 @@ enum ContentFilter: String, CaseIterable {
     }
 }
 
-// MARK: - Custom Grid Layout
-class SimpleGridLayout: NSCollectionViewLayout {
+// MARK: - Simple 3-Column Layout
+class Simple3ColumnLayout: NSCollectionViewLayout {
     private let itemSize = NSSize(width: 120, height: 140)
-    private let spacing: CGFloat = 16
-    private let sectionInset: CGFloat = 16
+    private let itemsPerRow = 3
+    private let verticalSpacing: CGFloat = 16
+    private let topBottomMargin: CGFloat = 16
     
     private var itemAttributes: [NSCollectionViewLayoutAttributes] = []
     private var contentSize = NSSize.zero
@@ -38,9 +39,13 @@ class SimpleGridLayout: NSCollectionViewLayout {
             return
         }
         
-        let availableWidth = collectionView.bounds.width - (sectionInset * 2)
-        let itemsPerRow = max(1, Int(availableWidth / (itemSize.width + spacing)))
-        let actualSpacing = (availableWidth - CGFloat(itemsPerRow) * itemSize.width) / CGFloat(itemsPerRow - 1)
+        // Calculate horizontal spacing for exactly 3 items per row
+        let availableWidth = collectionView.bounds.width
+        let totalItemWidth = CGFloat(itemsPerRow) * itemSize.width  // 3 * 120 = 360
+        let remainingSpace = availableWidth - totalItemWidth
+        let horizontalSpacing = remainingSpace / 4  // left + gap1 + gap2 + right
+        
+        print("3-Column Layout: availableWidth=\(availableWidth), horizontalSpacing=\(horizontalSpacing)")
         
         for item in 0..<numberOfItems {
             let indexPath = IndexPath(item: item, section: 0)
@@ -49,8 +54,8 @@ class SimpleGridLayout: NSCollectionViewLayout {
             let row = item / itemsPerRow
             let col = item % itemsPerRow
             
-            let x = sectionInset + CGFloat(col) * (itemSize.width + actualSpacing)
-            let y = sectionInset + CGFloat(row) * (itemSize.height + spacing)
+            let x = horizontalSpacing + CGFloat(col) * (itemSize.width + horizontalSpacing)
+            let y = topBottomMargin + CGFloat(row) * (itemSize.height + verticalSpacing)
             
             attributes.frame = NSRect(
                 x: x,
@@ -65,7 +70,7 @@ class SimpleGridLayout: NSCollectionViewLayout {
         let numberOfRows = (numberOfItems + itemsPerRow - 1) / itemsPerRow
         contentSize = NSSize(
             width: collectionView.bounds.width,
-            height: sectionInset + CGFloat(numberOfRows) * itemSize.height + CGFloat(numberOfRows - 1) * spacing + sectionInset
+            height: topBottomMargin + CGFloat(numberOfRows) * itemSize.height + CGFloat(max(0, numberOfRows - 1)) * verticalSpacing + topBottomMargin
         )
     }
     
@@ -342,11 +347,7 @@ class FileShelfViewController: NSViewController {
         view.addSubview(scrollView)
         
         // Setup layout
-        let layout = NSCollectionViewFlowLayout()
-        layout.itemSize = NSSize(width: 120, height: 140)
-        layout.minimumInteritemSpacing = 10
-        layout.minimumLineSpacing = 10
-        layout.sectionInset = NSEdgeInsets(top: 10, left: 10, bottom: 10, right: 10)
+        let layout = Simple3ColumnLayout()
         
         collectionView.collectionViewLayout = layout
         
@@ -472,8 +473,12 @@ class FileShelfViewController: NSViewController {
         print("FileShelfViewController: updateContent - filtered \(filteredItems.count) items for filter \(currentFilter)")
         
         DispatchQueue.main.async {
-            // Use manual grid instead of collection view
-            self.createManualGrid()
+            // Use collection view instead of manual grid for proper mouse handling
+            NSAnimationContext.runAnimationGroup { context in
+                context.duration = 0
+                context.allowsImplicitAnimation = false
+                self.collectionView.reloadData()
+            }
             self.updateStatusLabel()
             self.updateDropZoneVisibility()
             
@@ -481,7 +486,13 @@ class FileShelfViewController: NSViewController {
             print("=== UI FRAME DEBUG ===")
             print("View frame: \(self.view.frame)")
             print("ScrollView frame: \(self.scrollView.frame)")
-            print("Manual grid items: \(self.filteredItems.count)")
+            print("CollectionView frame: \(self.collectionView.frame)")
+            print("CollectionView bounds: \(self.collectionView.bounds)")
+            print("CollectionView visible rect: \(self.collectionView.visibleRect)")
+            print("CollectionView number of sections: \(self.collectionView.numberOfSections)")
+            if self.collectionView.numberOfSections > 0 {
+                print("CollectionView items in section 0: \(self.collectionView.numberOfItems(inSection: 0))")
+            }
             print("=== END FRAME DEBUG ===")
             
             print("FileShelfViewController: UI updated on main queue")
@@ -606,46 +617,6 @@ class FileShelfViewController: NSViewController {
         
         print("Manual test: Created \(testItems.count) test items")
         addItems(testItems)
-    }
-    
-    private func createManualGrid() {
-        // Remove all existing cell views
-        scrollView.documentView?.subviews.forEach { $0.removeFromSuperview() }
-        
-        // Create a container view for manual layout
-        let containerView = NSView()
-        containerView.translatesAutoresizingMaskIntoConstraints = false
-        
-        let itemWidth: CGFloat = 120
-        let itemHeight: CGFloat = 140
-        let itemsPerRow = 3  // Force exactly 3 items per row
-        
-        let availableWidth = scrollView.bounds.width
-        let totalItemWidth = CGFloat(itemsPerRow) * itemWidth  // 3 * 120 = 360
-        let remainingSpace = availableWidth - totalItemWidth
-        let spacing = remainingSpace / 4  // Equal space: left margin + 2 gaps + right margin
-        
-        print("Grid calculation: availableWidth=\(availableWidth), spacing=\(spacing)")
-        
-        for (index, item) in filteredItems.enumerated() {
-            let row = index / itemsPerRow
-            let col = index % itemsPerRow
-            
-            let x = spacing + CGFloat(col) * (itemWidth + spacing)
-            let y = spacing + CGFloat(row) * (itemHeight + spacing)
-            
-            let cell = FileShelfItemCell()
-            cell.view.frame = NSRect(x: x, y: y, width: itemWidth, height: itemHeight)
-            cell.configure(with: item, delegate: self)
-            
-            containerView.addSubview(cell.view)
-        }
-        
-        let numberOfRows = (filteredItems.count + itemsPerRow - 1) / itemsPerRow
-        let totalHeight = spacing + CGFloat(numberOfRows) * itemHeight + CGFloat(numberOfRows - 1) * spacing + spacing
-        
-        containerView.frame = NSRect(x: 0, y: 0, width: scrollView.bounds.width, height: totalHeight)
-        scrollView.documentView = containerView
     }
 }
 
@@ -782,32 +753,5 @@ extension FileShelfViewController: FileShelfItemCellDelegate {
     func fileShelfItemCell(_ cell: FileShelfItemCell, didTogglePinItem item: FileShelfItem) {
         item.isPinned.toggle()
         updateContent()
-    }
-}
-
-// MARK: - NSCollectionViewDelegateFlowLayout
-extension FileShelfViewController: NSCollectionViewDelegateFlowLayout {
-    
-    func collectionView(_ collectionView: NSCollectionView, layout collectionViewLayout: NSCollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> NSSize {
-        // Force exact size for all items
-        return NSSize(width: 120, height: 140)
-    }
-    
-    func collectionView(_ collectionView: NSCollectionView, layout collectionViewLayout: NSCollectionViewLayout, minimumInteritemSpacingForSectionAt section: Int) -> CGFloat {
-        // Force exact spacing between items in the same row
-        print("Delegate: minimumInteritemSpacing = 10")
-        return 10
-    }
-    
-    func collectionView(_ collectionView: NSCollectionView, layout collectionViewLayout: NSCollectionViewLayout, minimumLineSpacingForSectionAt section: Int) -> CGFloat {
-        // Force exact spacing between rows
-        print("Delegate: minimumLineSpacing = 10")
-        return 10
-    }
-    
-    func collectionView(_ collectionView: NSCollectionView, layout collectionViewLayout: NSCollectionViewLayout, insetForSectionAt section: Int) -> NSEdgeInsets {
-        // Force exact section insets
-        print("Delegate: sectionInset = 10,10,10,10")
-        return NSEdgeInsets(top: 10, left: 10, bottom: 10, right: 10)
     }
 } 

@@ -103,7 +103,7 @@ class FileShelfItemCell: NSCollectionViewItem {
         
         // Overlay view for action buttons
         overlayView.wantsLayer = true
-        overlayView.layer?.backgroundColor = AppColors.buttonOverlay.cgColor
+        overlayView.layer?.backgroundColor = NSColor.black.withAlphaComponent(0.2).cgColor  // More subtle background
         overlayView.layer?.cornerRadius = 8
         overlayView.alphaValue = 0
         overlayView.translatesAutoresizingMaskIntoConstraints = false
@@ -148,9 +148,9 @@ class FileShelfItemCell: NSCollectionViewItem {
             overlayView.bottomAnchor.constraint(equalTo: thumbnailImageView.bottomAnchor)
         ])
         
-        // Mouse tracking
-        let trackingArea = NSTrackingArea(rect: view.bounds, options: [.mouseEnteredAndExited, .activeAlways], owner: self, userInfo: nil)
-        view.addTrackingArea(trackingArea)
+        // Mouse tracking - Don't add here, add after layout is complete
+        // let trackingArea = NSTrackingArea(rect: view.bounds, options: [.mouseEnteredAndExited, .activeAlways], owner: self, userInfo: nil)
+        // view.addTrackingArea(trackingArea)
     }
     
     private func setupActionButtons() {
@@ -181,31 +181,34 @@ class FileShelfItemCell: NSCollectionViewItem {
         deleteButton.translatesAutoresizingMaskIntoConstraints = false
         overlayView.addSubview(deleteButton)
         
-        // Style buttons with better appearance
+        // Style buttons with better appearance - smaller and more subtle
         [copyButton, pinButton, deleteButton].forEach { button in
             button.wantsLayer = true
-            button.layer?.backgroundColor = AppColors.buttonBackground.cgColor
-            button.layer?.cornerRadius = 14
-            button.layer?.borderWidth = 1
-            button.layer?.borderColor = AppColors.primary.withAlphaComponent(0.3).cgColor
+            button.layer?.backgroundColor = NSColor.black.withAlphaComponent(0.7).cgColor  // Semi-transparent black
+            button.layer?.cornerRadius = 10  // Smaller radius for smaller buttons
+            button.layer?.borderWidth = 0   // No border for cleaner look
+            button.contentTintColor = NSColor.white  // White icons
         }
         
-        // Layout action buttons
+        // Layout action buttons - smaller and better positioned
         NSLayoutConstraint.activate([
-            copyButton.topAnchor.constraint(equalTo: overlayView.topAnchor, constant: 8),
-            copyButton.leadingAnchor.constraint(equalTo: overlayView.leadingAnchor, constant: 8),
-            copyButton.widthAnchor.constraint(equalToConstant: 28),
-            copyButton.heightAnchor.constraint(equalToConstant: 28),
+            // Copy button - top left
+            copyButton.topAnchor.constraint(equalTo: overlayView.topAnchor, constant: 6),
+            copyButton.leadingAnchor.constraint(equalTo: overlayView.leadingAnchor, constant: 6),
+            copyButton.widthAnchor.constraint(equalToConstant: 20),   // Smaller
+            copyButton.heightAnchor.constraint(equalToConstant: 20),  // Smaller
             
-            pinButton.topAnchor.constraint(equalTo: overlayView.topAnchor, constant: 8),
-            pinButton.trailingAnchor.constraint(equalTo: overlayView.trailingAnchor, constant: -8),
-            pinButton.widthAnchor.constraint(equalToConstant: 28),
-            pinButton.heightAnchor.constraint(equalToConstant: 28),
+            // Pin button - top right
+            pinButton.topAnchor.constraint(equalTo: overlayView.topAnchor, constant: 6),
+            pinButton.trailingAnchor.constraint(equalTo: overlayView.trailingAnchor, constant: -6),
+            pinButton.widthAnchor.constraint(equalToConstant: 20),    // Smaller
+            pinButton.heightAnchor.constraint(equalToConstant: 20),   // Smaller
             
-            deleteButton.bottomAnchor.constraint(equalTo: overlayView.bottomAnchor, constant: -8),
-            deleteButton.trailingAnchor.constraint(equalTo: overlayView.trailingAnchor, constant: -8),
-            deleteButton.widthAnchor.constraint(equalToConstant: 28),
-            deleteButton.heightAnchor.constraint(equalToConstant: 28)
+            // Delete button - bottom right
+            deleteButton.bottomAnchor.constraint(equalTo: overlayView.bottomAnchor, constant: -6),
+            deleteButton.trailingAnchor.constraint(equalTo: overlayView.trailingAnchor, constant: -6),
+            deleteButton.widthAnchor.constraint(equalToConstant: 20),  // Smaller
+            deleteButton.heightAnchor.constraint(equalToConstant: 20)  // Smaller
         ])
     }
     
@@ -274,6 +277,9 @@ class FileShelfItemCell: NSCollectionViewItem {
             // Force layout update
             view.needsLayout = true
             view.layoutSubtreeIfNeeded()
+            
+            // Add mouse tracking after layout is complete
+            setupMouseTracking()
             
             print("After configure - Cell view frame: \(view.frame)")
             print("After configure - Container view frame: \(containerView.frame)")
@@ -385,24 +391,61 @@ class FileShelfItemCell: NSCollectionViewItem {
     
     override func mouseEntered(with event: NSEvent) {
         super.mouseEntered(with: event)
-        // Removed animation - immediate show
-        overlayView.alphaValue = 1.0
+        print("🐭 Mouse ENTERED cell")
+        // Smooth animation for button reveal
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0.2
+            context.allowsImplicitAnimation = true
+            overlayView.animator().alphaValue = 1.0
+        }
     }
     
     override func mouseExited(with event: NSEvent) {
         super.mouseExited(with: event)
-        // Removed animation - immediate hide
-        overlayView.alphaValue = 0.0
+        print("🐭 Mouse EXITED cell")
+        // Smooth animation for button hide
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0.2
+            context.allowsImplicitAnimation = true
+            overlayView.animator().alphaValue = 0.0
+        }
+    }
+    
+    override func mouseMoved(with event: NSEvent) {
+        super.mouseMoved(with: event)
+        print("🐭 Mouse MOVED in cell")
     }
     
     override func mouseDown(with event: NSEvent) {
         super.mouseDown(with: event)
+        print("🐭 Mouse DOWN in cell")
         
-        // Start drag operation
-        guard let item = fileItem, let draggingItem = item.createDraggingItem() else { return }
+        // Check if click is on a button first
+        let localPoint = view.convert(event.locationInWindow, from: nil)
+        if overlayView.alphaValue > 0 {
+            let overlayPoint = overlayView.convert(localPoint, from: view)
+            if overlayView.bounds.contains(overlayPoint) {
+                // Check each button
+                for button in [copyButton, pinButton, deleteButton] {
+                    let buttonPoint = button.convert(overlayPoint, from: overlayView)
+                    if button.bounds.contains(buttonPoint) {
+                        print("🐭 Click on button, not dragging")
+                        return // Let button handle the click
+                    }
+                }
+            }
+        }
+        
+        // Start drag operation if not clicking a button
+        print("🐭 Starting drag operation")
+        guard let item = fileItem, let draggingItem = item.createDraggingItem() else { 
+            print("🐭 No drag item created")
+            return 
+        }
         
         let draggingSession = view.beginDraggingSession(with: [draggingItem], event: event, source: self)
         draggingSession.animatesToStartingPositionsOnCancelOrFail = true
+        print("🐭 Drag session started")
     }
     
     // MARK: - Action Methods
@@ -424,6 +467,23 @@ class FileShelfItemCell: NSCollectionViewItem {
     @objc private func deleteButtonClicked() {
         guard let item = fileItem else { return }
         delegate?.fileShelfItemCell(self, didRequestDeleteItem: item)
+    }
+    
+    private func setupMouseTracking() {
+        // Remove any existing tracking areas
+        for trackingArea in view.trackingAreas {
+            view.removeTrackingArea(trackingArea)
+        }
+        
+        // Add new tracking area with correct bounds
+        let trackingArea = NSTrackingArea(
+            rect: view.bounds,
+            options: [.mouseEnteredAndExited, .activeInKeyWindow, .mouseMoved],
+            owner: self,
+            userInfo: nil
+        )
+        view.addTrackingArea(trackingArea)
+        print("Mouse tracking added with bounds: \(view.bounds)")
     }
 }
 
