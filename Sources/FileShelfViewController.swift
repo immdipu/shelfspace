@@ -740,6 +740,11 @@ extension FileShelfViewController: DropZoneViewDelegate {
 // MARK: - File Shelf Item Cell Delegate
 extension FileShelfViewController: FileShelfItemCellDelegate {
     func fileShelfItemCell(_ cell: FileShelfItemCell, didRequestCopyItem item: FileShelfItem) {
+        // Tell clipboard monitor to ignore the next change since we're copying
+        if let appDelegate = NSApplication.shared.delegate as? AppDelegate {
+            appDelegate.clipboardMonitor.ignoreNextClipboardChange()
+        }
+        
         item.copyToClipboard()
         
         // Show brief feedback

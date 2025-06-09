@@ -6,6 +6,7 @@ class ClipboardMonitor {
     private var lastChangeCount: Int = 0
     private let onNewItems: ([FileShelfItem]) -> Void
     private let tempDirectory: URL
+    private var ignoringClipboardUntil: Date?
     
     init(onNewItems: @escaping ([FileShelfItem]) -> Void) {
         self.onNewItems = onNewItems
@@ -29,11 +30,27 @@ class ClipboardMonitor {
         timer = nil
     }
     
+    func ignoreNextClipboardChange() {
+        ignoringClipboardUntil = Date().addingTimeInterval(2.0)
+        print("ClipboardMonitor: Ignoring clipboard changes for 2 seconds")
+    }
+    
     private func checkClipboard() {
         let pasteboard = NSPasteboard.general
         
-        // Check if clipboard content has changed
         guard pasteboard.changeCount != lastChangeCount else { return }
+        
+        if let ignoreUntil = ignoringClipboardUntil, Date() < ignoreUntil {
+            print("ClipboardMonitor: Ignoring clipboard change (self-initiated)")
+            lastChangeCount = pasteboard.changeCount
+            return
+        }
+        
+        if let ignoreUntil = ignoringClipboardUntil, Date() >= ignoreUntil {
+            ignoringClipboardUntil = nil
+            print("ClipboardMonitor: Resumed monitoring clipboard changes")
+        }
+        
         lastChangeCount = pasteboard.changeCount
         
         var newItems: [FileShelfItem] = []
