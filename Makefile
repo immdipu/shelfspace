@@ -41,6 +41,14 @@ run: build ## Build and run the app
 	@echo "$(BLUE)🚀 Launching ShelfSpace...$(RESET)"
 	open ShelfSpace.app
 
+.PHONY: watch
+watch: ## Hot reload development mode (auto-rebuild on file changes)
+	@echo "$(BLUE)🔥 Starting hot reload development mode...$(RESET)"
+	./dev.sh watch
+
+.PHONY: dev
+dev: watch ## Alias for watch (hot reload development mode)
+
 .PHONY: clean
 clean: ## Clean build artifacts
 	@echo "$(YELLOW)🧹 Cleaning build artifacts...$(RESET)"
