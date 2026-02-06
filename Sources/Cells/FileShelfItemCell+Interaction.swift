@@ -196,69 +196,20 @@ extension FileShelfItemCell {
 
     override func mouseEntered(with event: NSEvent) {
         super.mouseEntered(with: event)
-        isHovering = true
-
-        NSAnimationContext.runAnimationGroup { ctx in
-            ctx.duration = 0.2
-            ctx.timingFunction = CAMediaTimingFunction(name: .easeOut)
-            ctx.allowsImplicitAnimation = true
-
-            if currentViewMode == .grid {
-                // Grid hover: change bg, show overlay with smooth fade
-                gridContainer.layer?.backgroundColor = AppColors.cardHover.cgColor
-                hoverOverlay.animator().alphaValue = 1
-                pinBadge.isHidden = true
-
-                // Subtle lift with shadow
-                if let layer = gridContainer.layer {
-                    layer.masksToBounds = false
-                    layer.shadowColor = NSColor.black.cgColor
-                    layer.shadowOpacity = 0.3
-                    layer.shadowRadius = 12
-                    layer.shadowOffset = CGSize(width: 0, height: -4)
-                }
-
-                // Border glow
-                if !(fileItem?.isPinned ?? false) {
-                    gridContainer.layer?.borderColor = AppColors.whiteOverlay6.cgColor
-                }
-            } else {
-                // List hover: change bg, fade in actions
-                listContainer.layer?.backgroundColor = AppColors.listHover.cgColor
-                listActionsContainer.animator().alphaValue = 1
-                listPinIndicator.isHidden = true
-            }
-        }
+        applyHoverState(true)
     }
 
     override func mouseExited(with event: NSEvent) {
         super.mouseExited(with: event)
-        isHovering = false
+        if isMouseInsideCard() { return }
+        applyHoverState(false)
+    }
 
-        NSAnimationContext.runAnimationGroup { ctx in
-            ctx.duration = 0.15
-            ctx.timingFunction = CAMediaTimingFunction(name: .easeIn)
-            ctx.allowsImplicitAnimation = true
-
-            if currentViewMode == .grid {
-                gridContainer.layer?.backgroundColor = AppColors.cardBackground.cgColor
-                hoverOverlay.animator().alphaValue = 0
-                gridContainer.layer?.masksToBounds = true
-                gridContainer.layer?.shadowOpacity = 0
-
-                if fileItem?.isPinned == true {
-                    pinBadge.isHidden = false
-                    gridContainer.layer?.borderColor = AppColors.accentPinnedBorder.cgColor
-                } else {
-                    gridContainer.layer?.borderColor = AppColors.whiteOverlay4.cgColor
-                }
-            } else {
-                listContainer.layer?.backgroundColor = NSColor.clear.cgColor
-                listActionsContainer.animator().alphaValue = 0
-                if fileItem?.isPinned == true {
-                    listPinIndicator.isHidden = false
-                }
-            }
+    override func mouseMoved(with event: NSEvent) {
+        super.mouseMoved(with: event)
+        let inside = isPointInsideCard(event.locationInWindow)
+        if inside != isHovering {
+            applyHoverState(inside)
         }
     }
 
@@ -286,6 +237,76 @@ extension FileShelfItemCell {
         guard let item = fileItem, let draggingItem = item.createDraggingItem() else { return }
         let session = view.beginDraggingSession(with: [draggingItem], event: event, source: self)
         session.animatesToStartingPositionsOnCancelOrFail = true
+    }
+
+    private func applyHoverState(_ hovering: Bool) {
+        guard hovering != isHovering else { return }
+        isHovering = hovering
+
+        NSAnimationContext.runAnimationGroup { ctx in
+            ctx.duration = hovering ? 0.2 : 0.15
+            ctx.timingFunction = CAMediaTimingFunction(name: hovering ? .easeOut : .easeIn)
+            ctx.allowsImplicitAnimation = true
+
+            if currentViewMode == .grid {
+                if hovering {
+                    // Grid hover: change bg, show overlay with smooth fade
+                    gridContainer.layer?.backgroundColor = AppColors.cardHover.cgColor
+                    hoverOverlay.animator().alphaValue = 1
+                    pinBadge.isHidden = true
+
+                    // Subtle lift with shadow
+                    if let layer = gridContainer.layer {
+                        layer.masksToBounds = false
+                        layer.shadowColor = NSColor.black.cgColor
+                        layer.shadowOpacity = 0.3
+                        layer.shadowRadius = 12
+                        layer.shadowOffset = CGSize(width: 0, height: -4)
+                    }
+
+                    // Border glow
+                    if !(fileItem?.isPinned ?? false) {
+                        gridContainer.layer?.borderColor = AppColors.whiteOverlay6.cgColor
+                    }
+                } else {
+                    gridContainer.layer?.backgroundColor = AppColors.cardBackground.cgColor
+                    hoverOverlay.animator().alphaValue = 0
+                    gridContainer.layer?.masksToBounds = true
+                    gridContainer.layer?.shadowOpacity = 0
+
+                    if fileItem?.isPinned == true {
+                        pinBadge.isHidden = false
+                        gridContainer.layer?.borderColor = AppColors.accentPinnedBorder.cgColor
+                    } else {
+                        gridContainer.layer?.borderColor = AppColors.whiteOverlay4.cgColor
+                    }
+                }
+            } else {
+                if hovering {
+                    // List hover: change bg, fade in actions
+                    listContainer.layer?.backgroundColor = AppColors.listHover.cgColor
+                    listActionsContainer.animator().alphaValue = 1
+                    listPinIndicator.isHidden = true
+                } else {
+                    listContainer.layer?.backgroundColor = NSColor.clear.cgColor
+                    listActionsContainer.animator().alphaValue = 0
+                    if fileItem?.isPinned == true {
+                        listPinIndicator.isHidden = false
+                    }
+                }
+            }
+        }
+    }
+
+    private func isPointInsideCard(_ locationInWindow: NSPoint) -> Bool {
+        let localPoint = view.convert(locationInWindow, from: nil)
+        let targetFrame = currentViewMode == .grid ? gridContainer.frame : listContainer.frame
+        return targetFrame.contains(localPoint)
+    }
+
+    private func isMouseInsideCard() -> Bool {
+        guard let window = view.window else { return false }
+        return isPointInsideCard(window.mouseLocationOutsideOfEventStream)
     }
 
     func setupMouseTracking() {

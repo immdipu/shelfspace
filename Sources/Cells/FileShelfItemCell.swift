@@ -342,16 +342,16 @@ class FileShelfItemCell: NSCollectionViewItem {
             // Grid action buttons centered in overlay, gap-2 (8px)
             gridPinButton.centerXAnchor.constraint(equalTo: hoverOverlay.centerXAnchor),
             gridPinButton.centerYAnchor.constraint(equalTo: hoverOverlay.centerYAnchor),
-            gridPinButton.widthAnchor.constraint(equalToConstant: 32),
-            gridPinButton.heightAnchor.constraint(equalToConstant: 32),
+            gridPinButton.widthAnchor.constraint(equalToConstant: DesignSystem.ActionButton.gridSize),
+            gridPinButton.heightAnchor.constraint(equalToConstant: DesignSystem.ActionButton.gridSize),
             gridCopyButton.trailingAnchor.constraint(equalTo: gridPinButton.leadingAnchor, constant: -8),
             gridCopyButton.centerYAnchor.constraint(equalTo: hoverOverlay.centerYAnchor),
-            gridCopyButton.widthAnchor.constraint(equalToConstant: 32),
-            gridCopyButton.heightAnchor.constraint(equalToConstant: 32),
+            gridCopyButton.widthAnchor.constraint(equalToConstant: DesignSystem.ActionButton.gridSize),
+            gridCopyButton.heightAnchor.constraint(equalToConstant: DesignSystem.ActionButton.gridSize),
             gridDeleteButton.leadingAnchor.constraint(equalTo: gridPinButton.trailingAnchor, constant: 8),
             gridDeleteButton.centerYAnchor.constraint(equalTo: hoverOverlay.centerYAnchor),
-            gridDeleteButton.widthAnchor.constraint(equalToConstant: 32),
-            gridDeleteButton.heightAnchor.constraint(equalToConstant: 32),
+            gridDeleteButton.widthAnchor.constraint(equalToConstant: DesignSystem.ActionButton.gridSize),
+            gridDeleteButton.heightAnchor.constraint(equalToConstant: DesignSystem.ActionButton.gridSize),
 
             // Pin badge: top-right, 20x20
             pinBadge.topAnchor.constraint(equalTo: previewArea.topAnchor, constant: 8),
@@ -575,7 +575,7 @@ class GridActionButton: NSButton {
         self.isDanger = isDanger
         super.init(frame: .zero)
         if let img = NSImage(systemSymbolName: symbolName, accessibilityDescription: label) {
-            let config = NSImage.SymbolConfiguration(pointSize: 14, weight: .regular)
+            let config = NSImage.SymbolConfiguration(pointSize: 12, weight: .regular)
             self.image = img.withSymbolConfiguration(config)
         }
         setupButton()
@@ -592,12 +592,13 @@ class GridActionButton: NSButton {
         layer?.backgroundColor = AppColors.whiteOverlay8.cgColor
         layer?.borderWidth = 1
         layer?.borderColor = AppColors.whiteOverlay6.cgColor
+        layer?.masksToBounds = true
         contentTintColor = AppColors.textLight
     }
 
     func updateIcon(symbolName: String) {
         if let img = NSImage(systemSymbolName: symbolName, accessibilityDescription: nil) {
-            let config = NSImage.SymbolConfiguration(pointSize: 14, weight: .regular)
+            let config = NSImage.SymbolConfiguration(pointSize: 12, weight: .regular)
             self.image = img.withSymbolConfiguration(config)
         }
     }
