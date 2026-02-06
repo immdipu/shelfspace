@@ -107,3 +107,15 @@ echo "🔗 Files to upload manually (if needed):"
 echo "   - $DMG_FILE"
 echo "   - $CHECKSUM_FILE"
 echo "   - $RELEASE_INFO_FILE"
+
+
+
+
+
+
+
+
+
+
+
+                                                                                                                                                                                            

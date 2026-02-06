@@ -2,10 +2,10 @@ import Foundation
 import UniformTypeIdentifiers
 import Cocoa
 
-class FileShelfItem: ObservableObject, Identifiable {
-    let id = UUID()
+class FileShelfItem: ObservableObject, Identifiable, Codable {
+    let id: UUID
     let originalName: String
-    let fileURL: URL?
+    var fileURL: URL?
     let mimeType: String
     let fileSize: Int64
     let dateAdded: Date
@@ -13,12 +13,12 @@ class FileShelfItem: ObservableObject, Identifiable {
     var isPinned: Bool = false
     let textContent: String?
     let itemType: ItemType
-    
-    enum ItemOrigin {
+
+    enum ItemOrigin: String, Codable {
         case dragDrop
         case clipboard
         case screenshot
-        
+
         var displayName: String {
             switch self {
             case .dragDrop: return "Dropped"
@@ -27,8 +27,8 @@ class FileShelfItem: ObservableObject, Identifiable {
             }
         }
     }
-    
-    enum ItemType {
+
+    enum ItemType: String, Codable {
         case image
         case text
         case document
@@ -36,7 +36,7 @@ class FileShelfItem: ObservableObject, Identifiable {
         case video
         case audio
         case other
-        
+
         var displayName: String {
             switch self {
             case .image: return "Image"
@@ -48,7 +48,7 @@ class FileShelfItem: ObservableObject, Identifiable {
             case .other: return "File"
             }
         }
-        
+
         var iconName: String {
             switch self {
             case .image: return "photo"
@@ -61,16 +61,56 @@ class FileShelfItem: ObservableObject, Identifiable {
             }
         }
     }
-    
-    init(originalName: String, fileURL: URL?, mimeType: String, fileSize: Int64, origin: ItemOrigin, textContent: String? = nil) {
+
+    // MARK: - Codable
+    enum CodingKeys: String, CodingKey {
+        case id, originalName, fileURLPath, mimeType, fileSize, dateAdded, origin, isPinned, textContent, itemType
+    }
+
+    required init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        originalName = try container.decode(String.self, forKey: .originalName)
+        if let path = try container.decodeIfPresent(String.self, forKey: .fileURLPath) {
+            fileURL = URL(fileURLWithPath: path)
+        } else {
+            fileURL = nil
+        }
+        mimeType = try container.decode(String.self, forKey: .mimeType)
+        fileSize = try container.decode(Int64.self, forKey: .fileSize)
+        dateAdded = try container.decode(Date.self, forKey: .dateAdded)
+        origin = try container.decode(ItemOrigin.self, forKey: .origin)
+        isPinned = try container.decode(Bool.self, forKey: .isPinned)
+        textContent = try container.decodeIfPresent(String.self, forKey: .textContent)
+        itemType = try container.decode(ItemType.self, forKey: .itemType)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(originalName, forKey: .originalName)
+        try container.encodeIfPresent(fileURL?.path, forKey: .fileURLPath)
+        try container.encode(mimeType, forKey: .mimeType)
+        try container.encode(fileSize, forKey: .fileSize)
+        try container.encode(dateAdded, forKey: .dateAdded)
+        try container.encode(origin, forKey: .origin)
+        try container.encode(isPinned, forKey: .isPinned)
+        try container.encodeIfPresent(textContent, forKey: .textContent)
+        try container.encode(itemType, forKey: .itemType)
+    }
+
+    // MARK: - Initialization
+    init(originalName: String, fileURL: URL?, mimeType: String, fileSize: Int64, origin: ItemOrigin, textContent: String? = nil, id: UUID = UUID(), dateAdded: Date = Date(), isPinned: Bool = false) {
+        self.id = id
         self.originalName = originalName
         self.fileURL = fileURL
         self.mimeType = mimeType
         self.fileSize = fileSize
-        self.dateAdded = Date()
+        self.dateAdded = dateAdded
         self.origin = origin
+        self.isPinned = isPinned
         self.textContent = textContent
-        
+
         // Determine item type based on MIME type and content
         if textContent != nil {
             self.itemType = .text
@@ -88,7 +128,7 @@ class FileShelfItem: ObservableObject, Identifiable {
             self.itemType = .other
         }
     }
-    
+
     // Convenience initializer for text content
     convenience init(textContent: String, origin: ItemOrigin) {
         self.init(
@@ -100,35 +140,35 @@ class FileShelfItem: ObservableObject, Identifiable {
             textContent: textContent
         )
     }
-    
+
     var isImage: Bool {
         return itemType == .image
     }
-    
+
     var isText: Bool {
         return itemType == .text
     }
-    
+
     var displayName: String {
         return originalName.isEmpty ? "Untitled" : originalName
     }
-    
+
     var formattedFileSize: String {
         let formatter = ByteCountFormatter()
         formatter.allowedUnits = [.useKB, .useMB, .useGB]
         formatter.countStyle = .file
         return formatter.string(fromByteCount: fileSize)
     }
-    
+
     var fileExtension: String {
         return URL(fileURLWithPath: originalName).pathExtension.lowercased()
     }
-    
+
     // Copy file data to clipboard
     func copyToClipboard() {
         let pasteboard = NSPasteboard.general
         pasteboard.clearContents()
-        
+
         if isText, let text = textContent {
             pasteboard.setString(text, forType: .string)
         } else if isImage, let fileURL = fileURL, let image = NSImage(contentsOf: fileURL) {
@@ -137,7 +177,7 @@ class FileShelfItem: ObservableObject, Identifiable {
             pasteboard.setString(fileURL.path, forType: NSPasteboard.PasteboardType.fileURL)
         }
     }
-    
+
     // Create dragging item for drag operations
     func createDraggingItem() -> NSDraggingItem? {
         if isText, let text = textContent {
@@ -145,20 +185,34 @@ class FileShelfItem: ObservableObject, Identifiable {
             let pasteboardItem = NSPasteboardItem()
             pasteboardItem.setString(text, forType: .string)
             let draggingItem = NSDraggingItem(pasteboardWriter: pasteboardItem)
-            
-            // Use text icon
-            let icon = NSImage(systemSymbolName: "doc.text", accessibilityDescription: "Text")!
-            icon.size = NSSize(width: 64, height: 64)
-            draggingItem.setDraggingFrame(NSRect(origin: .zero, size: icon.size), contents: icon)
+
+            // Use text icon - safe unwrap
+            if let icon = NSImage(systemSymbolName: "doc.text", accessibilityDescription: "Text") {
+                icon.size = NSSize(width: 64, height: 64)
+                draggingItem.setDraggingFrame(NSRect(origin: .zero, size: icon.size), contents: icon)
+            } else {
+                let fallbackIcon = NSWorkspace.shared.icon(forFile: "")
+                fallbackIcon.size = NSSize(width: 64, height: 64)
+                draggingItem.setDraggingFrame(NSRect(origin: .zero, size: fallbackIcon.size), contents: fallbackIcon)
+            }
             return draggingItem
         } else if let fileURL = fileURL {
             let draggingItem = NSDraggingItem(pasteboardWriter: fileURL as NSURL)
-            
+
             // Set drag image
             if isImage, let image = NSImage(contentsOf: fileURL) {
-                let dragImage = image.copy() as! NSImage
-                dragImage.size = NSSize(width: 64, height: 64)
-                draggingItem.setDraggingFrame(NSRect(origin: .zero, size: dragImage.size), contents: dragImage)
+                // Safe cast for copied image
+                if let dragImage = image.copy() as? NSImage {
+                    dragImage.size = NSSize(width: 64, height: 64)
+                    draggingItem.setDraggingFrame(NSRect(origin: .zero, size: dragImage.size), contents: dragImage)
+                } else {
+                    // Fallback to original image
+                    let resizedImage = NSImage(size: NSSize(width: 64, height: 64))
+                    resizedImage.lockFocus()
+                    image.draw(in: NSRect(origin: .zero, size: NSSize(width: 64, height: 64)))
+                    resizedImage.unlockFocus()
+                    draggingItem.setDraggingFrame(NSRect(origin: .zero, size: resizedImage.size), contents: resizedImage)
+                }
             } else {
                 // Use file icon for non-images
                 let icon = NSWorkspace.shared.icon(forFile: fileURL.path)
@@ -169,11 +223,11 @@ class FileShelfItem: ObservableObject, Identifiable {
         }
         return nil
     }
-    
+
     // Clean up temporary file
     func cleanup() {
         if let fileURL = fileURL {
             try? FileManager.default.removeItem(at: fileURL)
         }
     }
-} 
+}

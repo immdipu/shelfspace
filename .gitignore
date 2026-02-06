@@ -34,3 +34,6 @@ temp/
 # DMG files will be created during release process
 dist/*.dmg
 dist/*.sha256 
+
+landing-page/dist
+landing-page/node_modules
