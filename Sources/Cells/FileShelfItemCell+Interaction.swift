@@ -76,6 +76,7 @@ extension FileShelfItemCell {
         textPreviewLabel.isHidden = true
         fileIconContainer.isHidden = true
         fileSizeInPreview.isHidden = true
+        thumbnailImageView.image = nil
 
         if item.isText {
             if let content = item.textContent {
@@ -100,46 +101,74 @@ extension FileShelfItemCell {
     private func setupListIcon(for item: FileShelfItem) {
         listIconView.isHidden = false
         listIconImageView.isHidden = true
+        listIconImageView.image = nil
 
         if item.isImage, let fileURL = item.fileURL {
-            // Show actual image thumbnail in list icon
-            listIconView.isHidden = true
-            listIconImageView.isHidden = false
-            DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-                var image = NSImage(contentsOf: fileURL)
-                if image == nil, let data = try? Data(contentsOf: fileURL) {
-                    image = NSImage(data: data)
-                }
+            let token = UUID()
+            listIconLoadToken = token
+            loadImage(from: fileURL) { [weak self] image in
+                guard let self = self,
+                      self.listIconLoadToken == token,
+                      self.fileItem?.id == item.id else { return }
+
                 if let loadedImage = image {
-                    DispatchQueue.main.async {
-                        self?.listIconImageView.image = loadedImage
-                    }
+                    self.listIconImageView.image = loadedImage
+                    self.listIconImageView.isHidden = false
+                    self.listIconView.isHidden = true
+                } else {
+                    self.listIconImageView.isHidden = true
+                    self.listIconView.isHidden = false
                 }
             }
         }
     }
 
     private func loadGridThumbnail(for item: FileShelfItem) {
-        guard let fileURL = item.fileURL else { return }
+        guard let fileURL = item.fileURL else {
+            showImageFallback(for: item)
+            return
+        }
 
-        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            // Try loading from file URL
-            var image: NSImage?
-
-            // First try direct load
-            image = NSImage(contentsOf: fileURL)
-
-            // Fallback: try loading from file data
-            if image == nil, let data = try? Data(contentsOf: fileURL) {
-                image = NSImage(data: data)
-            }
+        let token = UUID()
+        thumbnailLoadToken = token
+        loadImage(from: fileURL) { [weak self] image in
+            guard let self = self,
+                  self.thumbnailLoadToken == token,
+                  self.fileItem?.id == item.id else { return }
 
             if let loadedImage = image {
-                DispatchQueue.main.async {
-                    self?.thumbnailImageView.image = loadedImage
-                    self?.thumbnailImageView.imageScaling = .scaleProportionallyUpOrDown
+                self.thumbnailImageView.image = loadedImage
+                self.thumbnailImageView.isHidden = false
+                self.fileIconContainer.isHidden = true
+                self.fileSizeInPreview.isHidden = true
+            } else {
+                self.thumbnailImageView.image = nil
+                self.thumbnailImageView.isHidden = true
+                self.showImageFallback(for: item)
+            }
+        }
+    }
+
+    private func loadImage(from fileURL: URL, completion: @escaping (NSImage?) -> Void) {
+        DispatchQueue.global(qos: .userInitiated).async {
+            let data = try? Data(contentsOf: fileURL)
+            DispatchQueue.main.async {
+                if let data = data, let image = NSImage(data: data) {
+                    completion(image)
+                } else {
+                    completion(NSImage(contentsOf: fileURL))
                 }
             }
+        }
+    }
+
+    private func showImageFallback(for item: FileShelfItem) {
+        fileIconContainer.isHidden = false
+        fileSizeInPreview.isHidden = false
+        fileSizeInPreview.stringValue = item.formattedFileSize
+        if let icon = NSImage(systemSymbolName: item.itemType.iconName, accessibilityDescription: nil) {
+            let config = NSImage.SymbolConfiguration(pointSize: 20, weight: .regular)
+            fileIconView.image = icon.withSymbolConfiguration(config)
         }
     }
 

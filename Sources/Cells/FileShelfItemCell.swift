@@ -8,6 +8,8 @@ class FileShelfItemCell: NSCollectionViewItem {
     var fileItem: FileShelfItem?
     var isHovering = false
     var currentViewMode: DesignSystem.ViewMode = .list
+    var thumbnailLoadToken = UUID()
+    var listIconLoadToken = UUID()
 
     // MARK: - Grid Mode Views
 

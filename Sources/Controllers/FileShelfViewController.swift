@@ -156,12 +156,25 @@ class FileShelfViewController: NSViewController {
         scrollView = NSScrollView()
         scrollView.documentView = collectionView
         scrollView.hasVerticalScroller = true
+        scrollView.wantsLayer = true
+        // Let the collection view background show through
         scrollView.drawsBackground = false
+        scrollView.backgroundColor = AppColors.background
+        scrollView.contentView.drawsBackground = false
+        scrollView.contentView.backgroundColor = AppColors.background
+        scrollView.contentView.wantsLayer = true
+        scrollView.contentView.layer?.backgroundColor = AppColors.background.cgColor
         scrollView.scrollerStyle = .overlay
         scrollView.scrollerKnobStyle = .light
         scrollView.translatesAutoresizingMaskIntoConstraints = false
-        // Make collectionView background transparent so parent bg shows through
-        collectionView.layer?.backgroundColor = NSColor.clear.cgColor
+        // Match collection background to app theme
+        let collectionBackgroundView = NSView()
+        collectionBackgroundView.wantsLayer = true
+        collectionBackgroundView.layer?.backgroundColor = AppColors.background.cgColor
+        collectionView.backgroundView = collectionBackgroundView
+        collectionView.backgroundColors = [AppColors.background]
+        collectionView.layer?.backgroundColor = AppColors.background.cgColor
+        collectionView.layer?.isOpaque = true
         view.addSubview(scrollView)
 
         let layout = AdaptiveGridLayout()
