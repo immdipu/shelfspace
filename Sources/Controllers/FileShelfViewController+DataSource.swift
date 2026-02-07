@@ -14,7 +14,10 @@ extension FileShelfViewController: NSCollectionViewDataSource {
         let cell = FileShelfItemCell()
         let item = filteredItems[indexPath.item]
 
-        // Apply current view mode before configuring
+        // Force loadView() so all subviews exist before we configure them.
+        // Without this, configure() sets properties that setupGridViews() overwrites.
+        _ = cell.view
+
         cell.applyViewMode(GridDensityManager.shared.currentViewMode)
         cell.configure(with: item, delegate: self)
 

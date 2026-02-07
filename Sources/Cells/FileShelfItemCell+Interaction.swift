@@ -68,6 +68,7 @@ extension FileShelfItemCell {
         // Reset hover state
         isHovering = false
         hoverOverlay.alphaValue = 0
+        hoverOverlay.isHidden = true
         listActionsContainer.alphaValue = 0
         gridContainer.layer?.backgroundColor = AppColors.cardBackground.cgColor
         listContainer.layer?.backgroundColor = NSColor.clear.cgColor
@@ -101,32 +102,82 @@ extension FileShelfItemCell {
     }
 
     private func setupPreviewContent(for item: FileShelfItem) {
-        // Hide all preview types first
+        // Hide everything — we ONLY use thumbnailImageView for all preview types
         thumbnailImageView.isHidden = true
         textPreviewLabel.isHidden = true
         fileIconContainer.isHidden = true
         fileSizeInPreview.isHidden = true
+        previewTypeIcon.isHidden = true
+        previewTypeIcon.image = nil
         thumbnailImageView.image = nil
-        thumbnailImageView.layer?.contents = nil  // Clear any layer-based image
+        thumbnailImageView.layer?.contents = nil
 
-        if item.isText {
-            if let content = item.textContent {
-                textPreviewLabel.stringValue = String(content.prefix(120))
-                textPreviewLabel.isHidden = false
-            }
+        // Reset thumbnail style to contain for non-image types
+        thumbnailImageView.imageScaling = .scaleProportionallyUpOrDown
+        thumbnailImageView.imageAlignment = .alignCenter
+
+        let trimmedText = item.textContent?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+
+        if !trimmedText.isEmpty {
+            // TEXT ITEMS: Render text as an image and show via thumbnailImageView
+            let textImage = createTextPreviewImage(text: trimmedText)
+            thumbnailImageView.image = textImage
+            thumbnailImageView.imageScaling = .scaleAxesIndependently  // Fill the preview area
+            thumbnailImageView.isHidden = false
         } else if item.isImage {
+            // IMAGE ITEMS: Load actual image thumbnail
             thumbnailImageView.isHidden = false
             loadGridThumbnail(for: item)
-        } else {
-            // File type: show icon + size in preview
-            fileIconContainer.isHidden = false
-            fileSizeInPreview.isHidden = false
-            fileSizeInPreview.stringValue = item.formattedFileSize
-            if let icon = NSImage(systemSymbolName: item.itemType.iconName, accessibilityDescription: nil) {
-                let config = NSImage.SymbolConfiguration(pointSize: 20, weight: .regular)
-                fileIconView.image = icon.withSymbolConfiguration(config)
+        } else if let fileURL = item.fileURL, isTextFile(fileURL: fileURL, mimeType: item.mimeType) {
+            // TEXT FILES (dropped .txt/.md/.swift etc): Load text from file, render as image
+            thumbnailImageView.isHidden = false
+            // Show placeholder first
+            let placeholderImage = createTextPreviewImage(text: "Loading…")
+            thumbnailImageView.image = placeholderImage
+            thumbnailImageView.imageScaling = .scaleAxesIndependently
+
+            let token = UUID()
+            textLoadToken = token
+            DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+                let data = try? Data(contentsOf: fileURL, options: .mappedIfSafe)
+                let text = data.flatMap {
+                    String(data: $0, encoding: .utf8)
+                        ?? String(data: $0, encoding: .utf16)
+                        ?? String(data: $0, encoding: .ascii)
+                }
+                let snippet = text.map { String($0.prefix(2000)) } ?? "Could not read file"
+                DispatchQueue.main.async {
+                    guard let self = self,
+                          self.textLoadToken == token,
+                          self.fileItem?.id == item.id else { return }
+                    let textImage = self.createTextPreviewImage(text: snippet)
+                    self.thumbnailImageView.image = textImage
+                    self.thumbnailImageView.imageScaling = .scaleAxesIndependently
+                    self.thumbnailImageView.isHidden = false
+                }
             }
+        } else {
+            // FILE ITEMS: Render icon + size as an image
+            let iconImage = createFileIconPreviewImage(
+                iconName: item.itemType.iconName,
+                fileSize: item.formattedFileSize
+            )
+            thumbnailImageView.image = iconImage
+            thumbnailImageView.imageScaling = .scaleAxesIndependently
+            thumbnailImageView.isHidden = false
         }
+    }
+
+    private func isTextFile(fileURL: URL, mimeType: String) -> Bool {
+        if mimeType.lowercased().hasPrefix("text/") { return true }
+        let ext = fileURL.pathExtension.lowercased()
+        let textExtensions: Set<String> = [
+            "txt", "md", "markdown", "rtf", "json", "xml", "csv", "tsv",
+            "yaml", "yml", "log", "ini", "conf", "cfg", "toml",
+            "html", "css", "js", "ts", "swift", "py", "rb", "java", "kt",
+            "c", "cc", "cpp", "h", "hpp", "m", "mm", "sh", "zsh", "bash"
+        ]
+        return textExtensions.contains(ext)
     }
 
     /// Applies the loaded image with the current thumbnail style (contain or cover)
@@ -307,6 +358,7 @@ extension FileShelfItemCell {
                 if hovering {
                     // Grid hover: change bg, show overlay with smooth fade
                     gridContainer.layer?.backgroundColor = AppColors.cardHover.cgColor
+                    hoverOverlay.isHidden = false
                     hoverOverlay.animator().alphaValue = 1
                     pinBadge.isHidden = true
 
@@ -326,6 +378,7 @@ extension FileShelfItemCell {
                 } else {
                     gridContainer.layer?.backgroundColor = AppColors.cardBackground.cgColor
                     hoverOverlay.animator().alphaValue = 0
+                    hoverOverlay.isHidden = true
                     gridContainer.layer?.masksToBounds = true
                     gridContainer.layer?.shadowOpacity = 0
 

@@ -10,6 +10,7 @@ class FileShelfItemCell: NSCollectionViewItem {
     var currentViewMode: DesignSystem.ViewMode = .list
     var thumbnailLoadToken = UUID()
     var listIconLoadToken = UUID()
+    var textLoadToken = UUID()
 
     // MARK: - Grid Mode Views
 
@@ -20,6 +21,7 @@ class FileShelfItemCell: NSCollectionViewItem {
     let fileIconContainer = NSView()
     let fileIconView = NSImageView()
     let fileSizeInPreview = NSTextField()
+    let previewTypeIcon = NSImageView()  // Large standalone icon for text/file preview
     let gradientLayer = CAGradientLayer()
     let hoverOverlay = HoverOverlayView()
     let gridCopyButton = GridActionButton(symbolName: "doc.on.doc", label: "Copy")
@@ -83,9 +85,10 @@ class FileShelfItemCell: NSCollectionViewItem {
         gridContainer.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(gridContainer)
 
-        // Preview area: 100px height, bg #111119
+        // Preview area: dynamic height, bg #111119, clips subviews
         previewArea.wantsLayer = true
         previewArea.layer?.backgroundColor = AppColors.previewBackground.cgColor
+        previewArea.layer?.masksToBounds = true  // Clip overflowing text/content
         previewArea.translatesAutoresizingMaskIntoConstraints = false
         gridContainer.addSubview(previewArea)
 
@@ -96,14 +99,22 @@ class FileShelfItemCell: NSCollectionViewItem {
         thumbnailImageView.isHidden = true
         previewArea.addSubview(thumbnailImageView)
 
-        // Text preview for text items
-        textPreviewLabel.font = DesignSystem.Typography.mono
-        textPreviewLabel.textColor = AppColors.previewText
+        // Text preview for text items — show actual text content with wrapping
+        textPreviewLabel.font = NSFont.monospacedSystemFont(ofSize: 12, weight: .regular)
+        textPreviewLabel.textColor = AppColors.textPrimary
         textPreviewLabel.isEditable = false
+        textPreviewLabel.isSelectable = false
         textPreviewLabel.isBordered = false
         textPreviewLabel.drawsBackground = false
-        textPreviewLabel.maximumNumberOfLines = 6
-        textPreviewLabel.lineBreakMode = .byTruncatingTail
+        textPreviewLabel.usesSingleLineMode = false
+        textPreviewLabel.cell?.wraps = true
+        textPreviewLabel.cell?.isScrollable = false
+        textPreviewLabel.maximumNumberOfLines = 0  // Unlimited lines, clipped by preview bounds
+        textPreviewLabel.lineBreakMode = .byWordWrapping
+        textPreviewLabel.cell?.lineBreakMode = .byWordWrapping
+        textPreviewLabel.cell?.truncatesLastVisibleLine = true
+        textPreviewLabel.setContentCompressionResistancePriority(.defaultLow, for: .vertical)
+        textPreviewLabel.setContentHuggingPriority(.defaultLow, for: .vertical)
         textPreviewLabel.translatesAutoresizingMaskIntoConstraints = false
         textPreviewLabel.isHidden = true
         previewArea.addSubview(textPreviewLabel)
@@ -130,6 +141,14 @@ class FileShelfItemCell: NSCollectionViewItem {
         fileSizeInPreview.translatesAutoresizingMaskIntoConstraints = false
         fileSizeInPreview.isHidden = true
         previewArea.addSubview(fileSizeInPreview)
+
+        // Large standalone type icon for text/file preview
+        previewTypeIcon.imageScaling = .scaleProportionallyUpOrDown
+        previewTypeIcon.contentTintColor = AppColors.accent
+        previewTypeIcon.translatesAutoresizingMaskIntoConstraints = false
+        previewTypeIcon.isHidden = true
+        previewTypeIcon.wantsLayer = true
+        previewArea.addSubview(previewTypeIcon)
 
         // Gradient fade at bottom of preview
         gradientLayer.colors = [NSColor.clear.cgColor, AppColors.cardBackground.cgColor]
@@ -332,23 +351,29 @@ class FileShelfItemCell: NSCollectionViewItem {
             thumbnailImageView.trailingAnchor.constraint(equalTo: previewArea.trailingAnchor),
             thumbnailImageView.bottomAnchor.constraint(equalTo: previewArea.bottomAnchor),
 
-            // Text preview
-            textPreviewLabel.topAnchor.constraint(equalTo: previewArea.topAnchor, constant: 10),
-            textPreviewLabel.leadingAnchor.constraint(equalTo: previewArea.leadingAnchor, constant: 12),
-            textPreviewLabel.trailingAnchor.constraint(equalTo: previewArea.trailingAnchor, constant: -12),
-            textPreviewLabel.bottomAnchor.constraint(lessThanOrEqualTo: previewArea.bottomAnchor, constant: -4),
+            // Text preview — fill the preview area (clipped by previewArea bounds)
+            textPreviewLabel.topAnchor.constraint(equalTo: previewArea.topAnchor, constant: 8),
+            textPreviewLabel.leadingAnchor.constraint(equalTo: previewArea.leadingAnchor, constant: 10),
+            textPreviewLabel.trailingAnchor.constraint(equalTo: previewArea.trailingAnchor, constant: -10),
+            textPreviewLabel.bottomAnchor.constraint(equalTo: previewArea.bottomAnchor, constant: -4),
 
-            // File icon in preview
+            // File/Text icon in preview (bigger, more visible)
             fileIconContainer.centerXAnchor.constraint(equalTo: previewArea.centerXAnchor),
-            fileIconContainer.centerYAnchor.constraint(equalTo: previewArea.centerYAnchor, constant: -8),
-            fileIconContainer.widthAnchor.constraint(equalToConstant: 40),
-            fileIconContainer.heightAnchor.constraint(equalToConstant: 40),
+            fileIconContainer.centerYAnchor.constraint(equalTo: previewArea.centerYAnchor, constant: -6),
+            fileIconContainer.widthAnchor.constraint(equalToConstant: 48),
+            fileIconContainer.heightAnchor.constraint(equalToConstant: 48),
             fileIconView.centerXAnchor.constraint(equalTo: fileIconContainer.centerXAnchor),
             fileIconView.centerYAnchor.constraint(equalTo: fileIconContainer.centerYAnchor),
-            fileIconView.widthAnchor.constraint(equalToConstant: 20),
-            fileIconView.heightAnchor.constraint(equalToConstant: 20),
+            fileIconView.widthAnchor.constraint(equalToConstant: 26),
+            fileIconView.heightAnchor.constraint(equalToConstant: 26),
             fileSizeInPreview.centerXAnchor.constraint(equalTo: previewArea.centerXAnchor),
             fileSizeInPreview.topAnchor.constraint(equalTo: fileIconContainer.bottomAnchor, constant: 8),
+
+            // Large standalone preview type icon
+            previewTypeIcon.centerXAnchor.constraint(equalTo: previewArea.centerXAnchor),
+            previewTypeIcon.centerYAnchor.constraint(equalTo: previewArea.centerYAnchor),
+            previewTypeIcon.widthAnchor.constraint(equalToConstant: 40),
+            previewTypeIcon.heightAnchor.constraint(equalToConstant: 40),
 
             // Hover overlay fills preview
             hoverOverlay.topAnchor.constraint(equalTo: previewArea.topAnchor),
@@ -489,6 +514,17 @@ class FileShelfItemCell: NSCollectionViewItem {
             width: previewArea.bounds.width,
             height: gradientHeight
         )
+
+        if previewArea.bounds.width > 0 {
+            textPreviewLabel.preferredMaxLayoutWidth = previewArea.bounds.width - 20
+        }
+
+        if let item = fileItem, item.isText, currentViewMode == .grid {
+            Logger.debug(
+                "Layout check: preview=\(previewArea.frame) textLabel=\(textPreviewLabel.frame) hidden=\(textPreviewLabel.isHidden) len=\(textPreviewLabel.stringValue.count)",
+                category: .cell
+            )
+        }
     }
 
     // MARK: - Actions
