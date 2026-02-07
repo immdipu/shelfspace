@@ -10,7 +10,7 @@ class FileShelfViewController: NSViewController {
     var toolbarView: ToolbarView!
     var emptyStateView: EmptyStateView!
     var dropZoneOverlay: DropZoneView!
-    var settingsPanel: SettingsView?
+
 
     // Legacy compatibility
     var tabsContainer: NSView { return tabBar }
@@ -253,6 +253,7 @@ class FileShelfViewController: NSViewController {
         filteredItems = items.filter { item in
             switch currentFilter {
             case .all: return true
+            case .pinned: return item.isPinned
             case .images: return item.isImage
             case .text: return item.isText
             case .files: return !item.isImage && !item.isText
@@ -302,6 +303,7 @@ class FileShelfViewController: NSViewController {
     private func updateTabBadges() {
         var counts: [ContentFilter: Int] = [:]
         counts[.all] = items.count
+        counts[.pinned] = items.filter { $0.isPinned }.count
         counts[.images] = items.filter { $0.isImage }.count
         counts[.text] = items.filter { $0.isText }.count
         counts[.files] = items.filter { !$0.isImage && !$0.isText }.count
@@ -386,39 +388,10 @@ class FileShelfViewController: NSViewController {
     // MARK: - Settings
 
     private func showSettings() {
-        guard settingsPanel == nil else { return }
-        let settings = SettingsView(frame: NSRect(x: 0, y: 0, width: 350, height: 400))
-        settings.delegate = self
-        settings.translatesAutoresizingMaskIntoConstraints = false
-        settings.alphaValue = 0
-        view.addSubview(settings)
-
-        NSLayoutConstraint.activate([
-            settings.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            settings.centerYAnchor.constraint(equalTo: view.centerYAnchor),
-            settings.widthAnchor.constraint(equalToConstant: 350),
-            settings.heightAnchor.constraint(equalToConstant: 400),
-        ])
-
-        settingsPanel = settings
-        NSAnimationContext.runAnimationGroup { ctx in
-            ctx.duration = AnimationHelper.Duration.normal
-            ctx.allowsImplicitAnimation = true
-            settings.alphaValue = 1.0
-        }
+        SettingsWindowController.shared.show()
     }
 
-    private func hideSettings() {
-        guard let settings = settingsPanel else { return }
-        NSAnimationContext.runAnimationGroup { ctx in
-            ctx.duration = AnimationHelper.Duration.normal
-            ctx.allowsImplicitAnimation = true
-            settings.alphaValue = 0.0
-        } completionHandler: {
-            settings.removeFromSuperview()
-            self.settingsPanel = nil
-        }
-    }
+
 }
 
 // MARK: - HeaderViewDelegate
@@ -464,15 +437,9 @@ extension FileShelfViewController: ToolbarViewDelegate {
     }
 }
 
-// MARK: - SettingsViewDelegate
 
-extension FileShelfViewController: SettingsViewDelegate {
-    func settingsViewDidClose(_ settingsView: SettingsView) {
-        hideSettings()
-    }
 
-    func settingsViewDidChangeDensity(_ settingsView: SettingsView, density: DesignSystem.CardSize) {}
-}
+
 
 // MARK: - DropZoneViewDelegate
 

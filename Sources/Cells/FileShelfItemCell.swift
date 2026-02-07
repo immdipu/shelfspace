@@ -484,18 +484,27 @@ class FileShelfItemCell: NSCollectionViewItem {
 
     @objc func copyClicked() {
         guard let item = fileItem else { return }
+        let button: ActionButtonFeedback = (currentViewMode == .grid) ? gridCopyButton : listCopyButton
+        button.playCopyFeedback(duration: 0.6)
         delegate?.fileShelfItemCell(self, didRequestCopyItem: item)
     }
 
     @objc func pinClicked() {
         guard let item = fileItem else { return }
+        let button: ActionButtonFeedback = (currentViewMode == .grid) ? gridPinButton : listPinButton
+        button.playPinFeedback()
         delegate?.fileShelfItemCell(self, didTogglePinItem: item)
         updatePinState()
     }
 
     @objc func deleteClicked() {
         guard let item = fileItem else { return }
-        delegate?.fileShelfItemCell(self, didRequestDeleteItem: item)
+        let button: ActionButtonFeedback = (currentViewMode == .grid) ? gridDeleteButton : listDeleteButton
+        button.playDeleteFeedback()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+            guard let self = self else { return }
+            self.delegate?.fileShelfItemCell(self, didRequestDeleteItem: item)
+        }
     }
 
     private func updatePinState() {
@@ -563,16 +572,26 @@ class HoverOverlayView: NSView {
     }
 }
 
-// MARK: - Grid Action Button (32x32, rounded-lg)
+protocol ActionButtonFeedback: AnyObject {
+    func playCopyFeedback(duration: TimeInterval)
+    func playPinFeedback()
+    func playDeleteFeedback()
+}
 
-class GridActionButton: NSButton {
+// MARK: - Grid Action Button (square)
+
+class GridActionButton: NSButton, ActionButtonFeedback {
     private var trackingArea: NSTrackingArea?
     private var isButtonHovered = false
     private var isDanger = false
     private var isActionActive = false
+    private var isShowingSuccess = false
+    private var currentSymbolName: String
+    private var successToken = UUID()
 
     init(symbolName: String, label: String, isDanger: Bool = false) {
         self.isDanger = isDanger
+        self.currentSymbolName = symbolName
         super.init(frame: .zero)
         if let img = NSImage(systemSymbolName: symbolName, accessibilityDescription: label) {
             let config = NSImage.SymbolConfiguration(pointSize: 11, weight: .regular)
@@ -581,7 +600,11 @@ class GridActionButton: NSButton {
         setupButton()
     }
 
-    required init?(coder: NSCoder) { super.init(coder: coder) }
+    required init?(coder: NSCoder) {
+        self.currentSymbolName = "questionmark"
+        super.init(coder: coder)
+        setupButton()
+    }
 
     private func setupButton() {
         isBordered = false
@@ -602,6 +625,8 @@ class GridActionButton: NSButton {
     }
 
     func updateIcon(symbolName: String) {
+        currentSymbolName = symbolName
+        if isShowingSuccess { return }
         if let img = NSImage(systemSymbolName: symbolName, accessibilityDescription: nil) {
             let config = NSImage.SymbolConfiguration(pointSize: 11, weight: .regular)
             self.image = img.withSymbolConfiguration(config)
@@ -618,11 +643,7 @@ class GridActionButton: NSButton {
 
     func setActionActive(_ active: Bool) {
         isActionActive = active
-        if active {
-            contentTintColor = AppColors.accent
-        } else if !isButtonHovered {
-            contentTintColor = AppColors.textLight
-        }
+        applyCurrentStateColors()
     }
 
     override func updateTrackingAreas() {
@@ -636,33 +657,120 @@ class GridActionButton: NSButton {
     override func mouseEntered(with event: NSEvent) {
         super.mouseEntered(with: event)
         isButtonHovered = true
-        if isDanger {
-            layer?.backgroundColor = AppColors.error.withAlphaComponent(0.2).cgColor
-            contentTintColor = AppColors.error
-        } else {
-            layer?.backgroundColor = AppColors.accent.withAlphaComponent(0.2).cgColor
-            contentTintColor = AppColors.accentLight
-        }
+        applyCurrentStateColors()
     }
 
     override func mouseExited(with event: NSEvent) {
         super.mouseExited(with: event)
         isButtonHovered = false
-        layer?.backgroundColor = AppColors.whiteOverlay8.cgColor
-        contentTintColor = isActionActive ? AppColors.accent : AppColors.textLight
+        applyCurrentStateColors()
+    }
+
+    func playCopyFeedback(duration: TimeInterval = 0.6) {
+        let token = UUID()
+        successToken = token
+        isShowingSuccess = true
+
+        if let img = NSImage(systemSymbolName: "checkmark", accessibilityDescription: "Done") {
+            let config = NSImage.SymbolConfiguration(pointSize: 11, weight: .semibold)
+            AnimationHelper.crossfade(layer: layer ?? CALayer(), duration: 0.12)
+            self.image = img.withSymbolConfiguration(config)
+        }
+
+        applyCurrentStateColors()
+
+        if let layer = layer {
+            let bounce = CAKeyframeAnimation(keyPath: "transform.scale")
+            bounce.values = [1.0, 1.12, 0.97, 1.0]
+            bounce.duration = 0.35
+            bounce.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+            layer.add(bounce, forKey: "successBounce")
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + duration) { [weak self] in
+            guard let self = self, self.successToken == token else { return }
+            self.isShowingSuccess = false
+            self.updateIcon(symbolName: self.currentSymbolName)
+            self.applyCurrentStateColors()
+        }
+    }
+
+    func playPinFeedback() {
+        if isShowingSuccess { return }
+        if let layer = layer {
+            let bounce = CAKeyframeAnimation(keyPath: "transform.scale")
+            bounce.values = [1.0, 1.1, 0.98, 1.0]
+            bounce.duration = 0.25
+            bounce.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+            layer.add(bounce, forKey: "pinBounce")
+
+            let flash = CABasicAnimation(keyPath: "backgroundColor")
+            flash.fromValue = layer.backgroundColor
+            flash.toValue = AppColors.accent.withAlphaComponent(0.25).cgColor
+            flash.duration = 0.12
+            flash.autoreverses = true
+            flash.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+            layer.add(flash, forKey: "pinFlash")
+        }
+    }
+
+    func playDeleteFeedback() {
+        if isShowingSuccess { return }
+        if let layer = layer {
+            let flash = CABasicAnimation(keyPath: "backgroundColor")
+            flash.fromValue = layer.backgroundColor
+            flash.toValue = AppColors.error.withAlphaComponent(0.25).cgColor
+            flash.duration = 0.12
+            flash.autoreverses = true
+            flash.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+            layer.add(flash, forKey: "deleteFlash")
+
+            let shake = CAKeyframeAnimation(keyPath: "transform.translation.x")
+            shake.values = [0, -2, 2, -1, 1, 0]
+            shake.duration = 0.2
+            shake.timingFunction = CAMediaTimingFunction(name: .linear)
+            layer.add(shake, forKey: "deleteShake")
+        }
+    }
+
+    private func applyCurrentStateColors() {
+        if isButtonHovered {
+            if isDanger {
+                layer?.backgroundColor = AppColors.error.withAlphaComponent(0.2).cgColor
+            } else {
+                layer?.backgroundColor = AppColors.accent.withAlphaComponent(0.2).cgColor
+            }
+        } else {
+            layer?.backgroundColor = AppColors.whiteOverlay8.cgColor
+        }
+
+        if isShowingSuccess {
+            contentTintColor = AppColors.success
+            return
+        }
+
+        if isButtonHovered {
+            contentTintColor = isDanger ? AppColors.error : AppColors.accentLight
+        } else {
+            contentTintColor = isActionActive ? AppColors.accent : AppColors.textLight
+        }
     }
 }
 
 // MARK: - List Action Button (28x28, transparent bg)
 
-class ListActionButton: NSButton {
+class ListActionButton: NSButton, ActionButtonFeedback {
     private var trackingArea: NSTrackingArea?
     private var isButtonHovered = false
     private var isDanger = false
     private var isActionActive = false
+    private var isShowingSuccess = false
+    private var currentSymbolName: String
+    private var successToken = UUID()
 
     init(symbolName: String, label: String, isDanger: Bool = false) {
         self.isDanger = isDanger
+        self.currentSymbolName = symbolName
         super.init(frame: .zero)
         if let img = NSImage(systemSymbolName: symbolName, accessibilityDescription: label) {
             let config = NSImage.SymbolConfiguration(pointSize: 14, weight: .regular)
@@ -671,7 +779,11 @@ class ListActionButton: NSButton {
         setupButton()
     }
 
-    required init?(coder: NSCoder) { super.init(coder: coder) }
+    required init?(coder: NSCoder) {
+        self.currentSymbolName = "questionmark"
+        super.init(coder: coder)
+        setupButton()
+    }
 
     private func setupButton() {
         isBordered = false
@@ -684,6 +796,8 @@ class ListActionButton: NSButton {
     }
 
     func updateIcon(symbolName: String) {
+        currentSymbolName = symbolName
+        if isShowingSuccess { return }
         if let img = NSImage(systemSymbolName: symbolName, accessibilityDescription: nil) {
             let config = NSImage.SymbolConfiguration(pointSize: 14, weight: .regular)
             self.image = img.withSymbolConfiguration(config)
@@ -692,11 +806,7 @@ class ListActionButton: NSButton {
 
     func setActionActive(_ active: Bool) {
         isActionActive = active
-        if active {
-            contentTintColor = AppColors.accent
-        } else if !isButtonHovered {
-            contentTintColor = AppColors.textTertiary
-        }
+        applyCurrentStateColors()
     }
 
     override func updateTrackingAreas() {
@@ -710,19 +820,102 @@ class ListActionButton: NSButton {
     override func mouseEntered(with event: NSEvent) {
         super.mouseEntered(with: event)
         isButtonHovered = true
-        if isDanger {
-            layer?.backgroundColor = AppColors.error.withAlphaComponent(0.15).cgColor
-            contentTintColor = AppColors.error
-        } else {
-            layer?.backgroundColor = AppColors.accent.withAlphaComponent(0.15).cgColor
-            contentTintColor = AppColors.accent
-        }
+        applyCurrentStateColors()
     }
 
     override func mouseExited(with event: NSEvent) {
         super.mouseExited(with: event)
         isButtonHovered = false
-        layer?.backgroundColor = NSColor.clear.cgColor
-        contentTintColor = isActionActive ? AppColors.accent : AppColors.textTertiary
+        applyCurrentStateColors()
+    }
+
+    func playCopyFeedback(duration: TimeInterval = 0.6) {
+        let token = UUID()
+        successToken = token
+        isShowingSuccess = true
+
+        if let img = NSImage(systemSymbolName: "checkmark", accessibilityDescription: "Done") {
+            let config = NSImage.SymbolConfiguration(pointSize: 12, weight: .semibold)
+            AnimationHelper.crossfade(layer: layer ?? CALayer(), duration: 0.12)
+            self.image = img.withSymbolConfiguration(config)
+        }
+
+        applyCurrentStateColors()
+
+        if let layer = layer {
+            let bounce = CAKeyframeAnimation(keyPath: "transform.scale")
+            bounce.values = [1.0, 1.12, 0.97, 1.0]
+            bounce.duration = 0.35
+            bounce.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+            layer.add(bounce, forKey: "successBounce")
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + duration) { [weak self] in
+            guard let self = self, self.successToken == token else { return }
+            self.isShowingSuccess = false
+            self.updateIcon(symbolName: self.currentSymbolName)
+            self.applyCurrentStateColors()
+        }
+    }
+
+    func playPinFeedback() {
+        if isShowingSuccess { return }
+        if let layer = layer {
+            let bounce = CAKeyframeAnimation(keyPath: "transform.scale")
+            bounce.values = [1.0, 1.1, 0.98, 1.0]
+            bounce.duration = 0.25
+            bounce.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+            layer.add(bounce, forKey: "pinBounce")
+
+            let flash = CABasicAnimation(keyPath: "backgroundColor")
+            flash.fromValue = layer.backgroundColor
+            flash.toValue = AppColors.accent.withAlphaComponent(0.15).cgColor
+            flash.duration = 0.12
+            flash.autoreverses = true
+            flash.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+            layer.add(flash, forKey: "pinFlash")
+        }
+    }
+
+    func playDeleteFeedback() {
+        if isShowingSuccess { return }
+        if let layer = layer {
+            let flash = CABasicAnimation(keyPath: "backgroundColor")
+            flash.fromValue = layer.backgroundColor
+            flash.toValue = AppColors.error.withAlphaComponent(0.2).cgColor
+            flash.duration = 0.12
+            flash.autoreverses = true
+            flash.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+            layer.add(flash, forKey: "deleteFlash")
+
+            let shake = CAKeyframeAnimation(keyPath: "transform.translation.x")
+            shake.values = [0, -2, 2, -1, 1, 0]
+            shake.duration = 0.2
+            shake.timingFunction = CAMediaTimingFunction(name: .linear)
+            layer.add(shake, forKey: "deleteShake")
+        }
+    }
+
+    private func applyCurrentStateColors() {
+        if isButtonHovered {
+            if isDanger {
+                layer?.backgroundColor = AppColors.error.withAlphaComponent(0.15).cgColor
+            } else {
+                layer?.backgroundColor = AppColors.accent.withAlphaComponent(0.15).cgColor
+            }
+        } else {
+            layer?.backgroundColor = NSColor.clear.cgColor
+        }
+
+        if isShowingSuccess {
+            contentTintColor = AppColors.success
+            return
+        }
+
+        if isButtonHovered {
+            contentTintColor = isDanger ? AppColors.error : AppColors.accent
+        } else {
+            contentTintColor = isActionActive ? AppColors.accent : AppColors.textTertiary
+        }
     }
 }

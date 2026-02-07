@@ -205,4 +205,24 @@ final class PersistenceManager {
             }
         }
     }
+    // MARK: - Public Accessors
+
+    var appSupportURL: URL {
+        return appSupportDirectory
+    }
+
+    func storageUsageBytes() -> Int64 {
+        guard let files = try? FileManager.default.contentsOfDirectory(at: filesDirectory, includingPropertiesForKeys: [.fileSizeKey]) else {
+            return 0
+        }
+
+        var size: Int64 = 0
+        for file in files {
+            if let resources = try? file.resourceValues(forKeys: [.fileSizeKey]),
+               let fileSize = resources.fileSize {
+                size += Int64(fileSize)
+            }
+        }
+        return size
+    }
 }
