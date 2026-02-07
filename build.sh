@@ -123,6 +123,11 @@ else
     echo "⚠️  No app icon found. Run ./create-icons.sh first for a custom icon."
 fi
 
+# Ad-hoc code sign the app (prevents "damaged" error on macOS Gatekeeper)
+echo "🔏 Code signing app (ad-hoc)..."
+codesign --force --deep --sign - "$APP_NAME.app"
+echo "   ✅ Code signing complete"
+
 echo "✅ Build complete! $APP_NAME.app v$APP_VERSION created."
 echo "📦 Bundle ID: $BUNDLE_ID"
 echo "🔨 Build Number: $BUILD_NUMBER"

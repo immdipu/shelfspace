@@ -1,9 +1,9 @@
 ShelfSpace v1.0.0 Release Information
 =========================================
 
-Build Date: Sat Feb  7 22:52:13 +0545 2026
+Build Date: Sat Feb  7 23:06:03 +0545 2026
 App Bundle: ShelfSpace.app (1.1M)
-DMG Installer: ShelfSpace-1.0.0.dmg (696K)
+DMG Installer: ShelfSpace-1.0.0.dmg (692K)
 
 System Requirements:
 - macOS 13.0 or later
