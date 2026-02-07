@@ -9,9 +9,7 @@ import Footer from './components/Footer/Footer'
 function App() {
   return (
     <div className="min-h-screen bg-void">
-      {/* Film grain texture */}
       <div className="grain-overlay" />
-
       <Navbar />
       <Hero />
       <Features />

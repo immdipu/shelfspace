@@ -49,6 +49,14 @@ jobs:
           echo "version=$APP_VERSION" >> $GITHUB_OUTPUT
           echo "app_name=$APP_NAME" >> $GITHUB_OUTPUT
 
+      - name: Create generic DMG copy
+        run: |
+          # Create a copy without version number for generic download links
+          cp ./dist/$APP_NAME-$APP_VERSION.dmg ./dist/$APP_NAME.dmg
+        env:
+          APP_NAME: ${{ steps.version.outputs.app_name }}
+          APP_VERSION: ${{ steps.version.outputs.version }}
+
       - name: Create Release
         uses: softprops/action-gh-release@v1
         env:
@@ -97,5 +105,6 @@ jobs:
           prerelease: false
           files: |
             ./dist/${{ steps.version.outputs.app_name }}-${{ steps.version.outputs.version }}.dmg
+            ./dist/${{ steps.version.outputs.app_name }}.dmg
             ./dist/${{ steps.version.outputs.app_name }}-${{ steps.version.outputs.version }}.dmg.sha256
             ./dist/RELEASE_INFO.txt
