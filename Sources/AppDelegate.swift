@@ -21,7 +21,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     static var copyright: String {
-        return Bundle.main.object(forInfoDictionaryKey: "NSHumanReadableCopyright") as? String ?? "Copyright © 2024 Dipu Chaurasiya"
+        return Bundle.main.object(forInfoDictionaryKey: "NSHumanReadableCopyright") as? String ?? "Copyright © 2026 Dipu"
     }
     
     func applicationDidFinishLaunching(_ notification: Notification) {

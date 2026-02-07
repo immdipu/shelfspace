@@ -185,7 +185,7 @@ final class AboutSettingsViewController: SettingsPaneViewController {
     }
 
     @objc private func openGitHub() {
-        if let url = URL(string: "https://github.com/immdipu") {
+        if let url = URL(string: "https://github.com/immdipu/shelfspace") {
             NSWorkspace.shared.open(url)
         }
     }
