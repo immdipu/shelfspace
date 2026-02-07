@@ -39,6 +39,10 @@ class GridDensityManager {
         }
     }
 
+    var currentThumbnailStyle: DesignSystem.ThumbnailStyle {
+        return SettingsStore.shared.thumbnailStyle
+    }
+
     private init() {}
 }
 
@@ -67,6 +71,10 @@ class AdaptiveGridLayout: NSCollectionViewLayout {
 
     var viewMode: DesignSystem.ViewMode {
         return GridDensityManager.shared.currentViewMode
+    }
+
+    var density: DesignSystem.CardSize {
+        return GridDensityManager.shared.currentDensity
     }
 
     override init() {
@@ -110,11 +118,12 @@ class AdaptiveGridLayout: NSCollectionViewLayout {
     }
 
     private func prepareGridLayout(numberOfItems: Int, availableWidth: CGFloat) {
-        let cols = DesignSystem.GridCard.columns
-        let inset = DesignSystem.GridCard.sectionInset
-        let gap = DesignSystem.GridCard.gap
+        let currentDensity = density
+        let cols = currentDensity.columnsCount
+        let inset = currentDensity.sectionInset
+        let gap = currentDensity.gap
         let itemWidth = floor((availableWidth - inset * 2 - gap * CGFloat(cols - 1)) / CGFloat(cols))
-        let itemHeight = DesignSystem.GridCard.previewHeight + DesignSystem.GridCard.footerHeight
+        let itemHeight = currentDensity.itemHeight
 
         for item in 0..<numberOfItems {
             let indexPath = IndexPath(item: item, section: 0)

@@ -8,6 +8,13 @@ enum DesignSystem {
         case list
     }
 
+    // MARK: - Thumbnail Style
+
+    enum ThumbnailStyle: String {
+        case contain  // Fit image, may have letterbox gaps
+        case cover    // Fill area, image may be cropped
+    }
+
     // MARK: - Spacing
 
     enum Spacing {
@@ -57,7 +64,7 @@ enum DesignSystem {
         static let cornerRadius: CGFloat = 12  // rounded-xl
         static let gap: CGFloat = 8  // gap-2
         static let sectionInset: CGFloat = 8
-        static let columns: Int = 2
+        static let columns: Int = 2  // Default (comfortable)
     }
 
     // MARK: - List Card
@@ -85,13 +92,43 @@ enum DesignSystem {
         case comfortable
         case large
 
-        var columnsCount: Int { 2 }
-
-        var itemHeight: CGFloat {
-            return GridCard.previewHeight + GridCard.footerHeight
+        var columnsCount: Int {
+            switch self {
+            case .compact: return 3
+            case .comfortable: return 2
+            case .large: return 1
+            }
         }
 
-        var minimumInteritemSpacing: CGFloat { GridCard.gap }
+        var previewHeight: CGFloat {
+            switch self {
+            case .compact: return 80
+            case .comfortable: return GridCard.previewHeight
+            case .large: return 160
+            }
+        }
+
+        var footerHeight: CGFloat {
+            switch self {
+            case .compact: return 38
+            case .comfortable: return GridCard.footerHeight
+            case .large: return 50
+            }
+        }
+
+        var itemHeight: CGFloat {
+            return previewHeight + footerHeight
+        }
+
+        var gap: CGFloat {
+            switch self {
+            case .compact: return 6
+            case .comfortable: return GridCard.gap
+            case .large: return 10
+            }
+        }
+
+        var minimumInteritemSpacing: CGFloat { gap }
         var sectionInset: CGFloat { GridCard.sectionInset }
 
         func itemWidth(for availableWidth: CGFloat) -> CGFloat {

@@ -25,6 +25,14 @@ extension FileShelfItemCell {
         gridNameLabel.stringValue = displayName
         gridSizeLabel.stringValue = item.formattedFileSize
 
+        // Apply dynamic density settings
+        updateForDensity()
+
+        // Apply dynamic appearance settings
+        let cornerRadius = CGFloat(SettingsStore.shared.cardCornerRadius)
+        gridContainer.layer?.cornerRadius = cornerRadius
+        gridSizeLabel.isHidden = !SettingsStore.shared.showFileSizeInGrid
+
         // List mode data
         listNameLabel.stringValue = displayName
 
@@ -70,6 +78,28 @@ extension FileShelfItemCell {
         setupMouseTracking()
     }
 
+    /// Updates cell layout for the current density (compact/comfortable/large)
+    func updateForDensity() {
+        let density = GridDensityManager.shared.currentDensity
+
+        // Update preview and footer height constraints
+        previewHeightConstraint?.constant = density.previewHeight
+        footerHeightConstraint?.constant = density.footerHeight
+
+        // Adapt fonts based on density
+        switch density {
+        case .compact:
+            gridNameLabel.font = NSFont.systemFont(ofSize: 10, weight: .medium)
+            gridSizeLabel.font = NSFont.systemFont(ofSize: 8, weight: .regular)
+        case .comfortable:
+            gridNameLabel.font = DesignSystem.Typography.body
+            gridSizeLabel.font = DesignSystem.Typography.small
+        case .large:
+            gridNameLabel.font = DesignSystem.Typography.subtitle
+            gridSizeLabel.font = DesignSystem.Typography.body
+        }
+    }
+
     private func setupPreviewContent(for item: FileShelfItem) {
         // Hide all preview types first
         thumbnailImageView.isHidden = true
@@ -77,6 +107,7 @@ extension FileShelfItemCell {
         fileIconContainer.isHidden = true
         fileSizeInPreview.isHidden = true
         thumbnailImageView.image = nil
+        thumbnailImageView.layer?.contents = nil  // Clear any layer-based image
 
         if item.isText {
             if let content = item.textContent {
@@ -94,6 +125,29 @@ extension FileShelfItemCell {
             if let icon = NSImage(systemSymbolName: item.itemType.iconName, accessibilityDescription: nil) {
                 let config = NSImage.SymbolConfiguration(pointSize: 20, weight: .regular)
                 fileIconView.image = icon.withSymbolConfiguration(config)
+            }
+        }
+    }
+
+    /// Applies the loaded image with the current thumbnail style (contain or cover)
+    private func applyImage(_ image: NSImage) {
+        let style = GridDensityManager.shared.currentThumbnailStyle
+        thumbnailImageView.wantsLayer = true
+        previewArea.layer?.masksToBounds = true
+
+        switch style {
+        case .contain:
+            thumbnailImageView.layer?.contents = nil
+            thumbnailImageView.imageScaling = .scaleProportionallyUpOrDown
+            thumbnailImageView.imageAlignment = .alignCenter
+            thumbnailImageView.image = image
+        case .cover:
+            // Use layer-based rendering for true aspect-fill (cover)
+            thumbnailImageView.image = nil
+            thumbnailImageView.imageScaling = .scaleNone
+            if let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil) {
+                thumbnailImageView.layer?.contentsGravity = .resizeAspectFill
+                thumbnailImageView.layer?.contents = cgImage
             }
         }
     }
@@ -137,12 +191,13 @@ extension FileShelfItemCell {
                   self.fileItem?.id == item.id else { return }
 
             if let loadedImage = image {
-                self.thumbnailImageView.image = loadedImage
+                self.applyImage(loadedImage)
                 self.thumbnailImageView.isHidden = false
                 self.fileIconContainer.isHidden = true
                 self.fileSizeInPreview.isHidden = true
             } else {
                 self.thumbnailImageView.image = nil
+                self.thumbnailImageView.layer?.contents = nil
                 self.thumbnailImageView.isHidden = true
                 self.showImageFallback(for: item)
             }

@@ -52,6 +52,10 @@ class FileShelfItemCell: NSCollectionViewItem {
 
     private var gridConstraints: [NSLayoutConstraint] = []
     private var listConstraints: [NSLayoutConstraint] = []
+    
+    // Dynamic constraints that change with density
+    var previewHeightConstraint: NSLayoutConstraint?
+    var footerHeightConstraint: NSLayoutConstraint?
 
     // MARK: - Initialization
 
@@ -85,7 +89,7 @@ class FileShelfItemCell: NSCollectionViewItem {
         previewArea.translatesAutoresizingMaskIntoConstraints = false
         gridContainer.addSubview(previewArea)
 
-        // Thumbnail for images
+        // Thumbnail for images - default to contain, will be updated by thumbnail style setting
         thumbnailImageView.imageScaling = .scaleProportionallyUpOrDown
         thumbnailImageView.imageAlignment = .alignCenter
         thumbnailImageView.translatesAutoresizingMaskIntoConstraints = false
@@ -296,6 +300,13 @@ class FileShelfItemCell: NSCollectionViewItem {
     // MARK: - Constraints
 
     private func setupConstraints() {
+        // Create dynamic height constraints (will be updated per density)
+        let density = GridDensityManager.shared.currentDensity
+        let previewH = previewArea.heightAnchor.constraint(equalToConstant: density.previewHeight)
+        let footerH = gridFooter.heightAnchor.constraint(equalToConstant: density.footerHeight)
+        previewHeightConstraint = previewH
+        footerHeightConstraint = footerH
+
         // Grid constraints
         gridConstraints = [
             gridContainer.topAnchor.constraint(equalTo: view.topAnchor),
@@ -303,11 +314,17 @@ class FileShelfItemCell: NSCollectionViewItem {
             gridContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             gridContainer.bottomAnchor.constraint(equalTo: view.bottomAnchor),
 
-            // Preview area
+            // Preview area: top-pinned, dynamic height
             previewArea.topAnchor.constraint(equalTo: gridContainer.topAnchor),
             previewArea.leadingAnchor.constraint(equalTo: gridContainer.leadingAnchor),
             previewArea.trailingAnchor.constraint(equalTo: gridContainer.trailingAnchor),
-            previewArea.heightAnchor.constraint(equalToConstant: DesignSystem.GridCard.previewHeight),
+            previewH,
+
+            // Footer: bottom-pinned, dynamic height
+            gridFooter.leadingAnchor.constraint(equalTo: gridContainer.leadingAnchor),
+            gridFooter.trailingAnchor.constraint(equalTo: gridContainer.trailingAnchor),
+            gridFooter.bottomAnchor.constraint(equalTo: gridContainer.bottomAnchor),
+            footerH,
 
             // Thumbnail fills preview
             thumbnailImageView.topAnchor.constraint(equalTo: previewArea.topAnchor),
@@ -361,12 +378,6 @@ class FileShelfItemCell: NSCollectionViewItem {
             pinBadgeIcon.centerXAnchor.constraint(equalTo: pinBadge.centerXAnchor),
             pinBadgeIcon.centerYAnchor.constraint(equalTo: pinBadge.centerYAnchor),
 
-            // Footer
-            gridFooter.topAnchor.constraint(equalTo: previewArea.bottomAnchor),
-            gridFooter.leadingAnchor.constraint(equalTo: gridContainer.leadingAnchor),
-            gridFooter.trailingAnchor.constraint(equalTo: gridContainer.trailingAnchor),
-            gridFooter.bottomAnchor.constraint(equalTo: gridContainer.bottomAnchor),
-
             // Type icon in footer: 24x24
             gridTypeIconContainer.leadingAnchor.constraint(equalTo: gridFooter.leadingAnchor, constant: 12),
             gridTypeIconContainer.centerYAnchor.constraint(equalTo: gridFooter.centerYAnchor),
@@ -379,11 +390,11 @@ class FileShelfItemCell: NSCollectionViewItem {
 
             // Name and size in footer
             gridNameLabel.leadingAnchor.constraint(equalTo: gridTypeIconContainer.trailingAnchor, constant: 8),
-            gridNameLabel.trailingAnchor.constraint(equalTo: gridFooter.trailingAnchor, constant: -12),
-            gridNameLabel.topAnchor.constraint(equalTo: gridFooter.topAnchor, constant: 8),
+            gridNameLabel.trailingAnchor.constraint(equalTo: gridFooter.trailingAnchor, constant: -8),
+            gridNameLabel.topAnchor.constraint(equalTo: gridFooter.topAnchor, constant: 6),
 
             gridSizeLabel.leadingAnchor.constraint(equalTo: gridTypeIconContainer.trailingAnchor, constant: 8),
-            gridSizeLabel.trailingAnchor.constraint(equalTo: gridFooter.trailingAnchor, constant: -12),
+            gridSizeLabel.trailingAnchor.constraint(equalTo: gridFooter.trailingAnchor, constant: -8),
             gridSizeLabel.topAnchor.constraint(equalTo: gridNameLabel.bottomAnchor, constant: 1),
         ]
 

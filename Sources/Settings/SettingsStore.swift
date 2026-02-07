@@ -13,6 +13,10 @@ extension Notification.Name {
 
     static let settingsDidRequestClearUnpinned = Notification.Name("settingsDidRequestClearUnpinned")
     static let settingsDidRequestClearAll = Notification.Name("settingsDidRequestClearAll")
+    
+    static let settingsThumbnailStyleChanged = Notification.Name("settingsThumbnailStyleChanged")
+    static let settingsShowFileSizeChanged = Notification.Name("settingsShowFileSizeChanged")
+    static let settingsCardCornerRadiusChanged = Notification.Name("settingsCardCornerRadiusChanged")
 }
 
 final class SettingsStore {
@@ -33,6 +37,9 @@ final class SettingsStore {
         static let maxItems = "settings.maxItems"
         static let autoClearDays = "settings.autoClearDays"
         static let ignoreDuplicates = "settings.ignoreDuplicates"
+        static let thumbnailStyle = "settings.thumbnailStyle"
+        static let showFileSizeInGrid = "settings.showFileSizeInGrid"
+        static let cardCornerRadius = "settings.cardCornerRadius"
     }
 
     private enum Defaults {
@@ -48,6 +55,9 @@ final class SettingsStore {
         static let maxItems = 50
         static let autoClearDays = 0
         static let ignoreDuplicates = false
+        static let thumbnailStyle = "contain"
+        static let showFileSizeInGrid = true
+        static let cardCornerRadius = 12
     }
 
     private init() {
@@ -63,7 +73,10 @@ final class SettingsStore {
             Keys.maxTextLength: Defaults.maxTextLength,
             Keys.maxItems: Defaults.maxItems,
             Keys.autoClearDays: Defaults.autoClearDays,
-            Keys.ignoreDuplicates: Defaults.ignoreDuplicates
+            Keys.ignoreDuplicates: Defaults.ignoreDuplicates,
+            Keys.thumbnailStyle: Defaults.thumbnailStyle,
+            Keys.showFileSizeInGrid: Defaults.showFileSizeInGrid,
+            Keys.cardCornerRadius: Defaults.cardCornerRadius,
         ])
     }
 
@@ -80,6 +93,10 @@ final class SettingsStore {
     private func double(forKey key: String, default defaultValue: Double) -> Double {
         guard defaults.object(forKey: key) != nil else { return defaultValue }
         return defaults.double(forKey: key)
+    }
+    
+    private func string(forKey key: String, default defaultValue: String) -> String {
+        return defaults.string(forKey: key) ?? defaultValue
     }
 
     var showMenuBarIcon: Bool {
@@ -182,6 +199,41 @@ final class SettingsStore {
             NotificationCenter.default.post(name: .settingsDidChange, object: nil)
         }
     }
+    
+    // MARK: - Appearance Settings
+    
+    var thumbnailStyle: DesignSystem.ThumbnailStyle {
+        get {
+            let raw = string(forKey: Keys.thumbnailStyle, default: Defaults.thumbnailStyle)
+            return DesignSystem.ThumbnailStyle(rawValue: raw) ?? .contain
+        }
+        set {
+            defaults.set(newValue.rawValue, forKey: Keys.thumbnailStyle)
+            NotificationCenter.default.post(name: .settingsThumbnailStyleChanged, object: nil)
+            NotificationCenter.default.post(name: .gridDensityChanged, object: nil) // Trigger relayout
+            NotificationCenter.default.post(name: .settingsDidChange, object: nil)
+        }
+    }
+    
+    var showFileSizeInGrid: Bool {
+        get { bool(forKey: Keys.showFileSizeInGrid, default: Defaults.showFileSizeInGrid) }
+        set {
+            defaults.set(newValue, forKey: Keys.showFileSizeInGrid)
+            NotificationCenter.default.post(name: .settingsShowFileSizeChanged, object: nil)
+            NotificationCenter.default.post(name: .gridDensityChanged, object: nil)
+            NotificationCenter.default.post(name: .settingsDidChange, object: nil)
+        }
+    }
+    
+    var cardCornerRadius: Int {
+        get { int(forKey: Keys.cardCornerRadius, default: Defaults.cardCornerRadius) }
+        set {
+            defaults.set(newValue, forKey: Keys.cardCornerRadius)
+            NotificationCenter.default.post(name: .settingsCardCornerRadiusChanged, object: nil)
+            NotificationCenter.default.post(name: .gridDensityChanged, object: nil)
+            NotificationCenter.default.post(name: .settingsDidChange, object: nil)
+        }
+    }
 
     var launchAtLoginEnabled: Bool {
         if #available(macOS 13.0, *) {
@@ -219,6 +271,9 @@ final class SettingsStore {
         defaults.removeObject(forKey: Keys.maxItems)
         defaults.removeObject(forKey: Keys.autoClearDays)
         defaults.removeObject(forKey: Keys.ignoreDuplicates)
+        defaults.removeObject(forKey: Keys.thumbnailStyle)
+        defaults.removeObject(forKey: Keys.showFileSizeInGrid)
+        defaults.removeObject(forKey: Keys.cardCornerRadius)
 
         _ = setLaunchAtLoginEnabled(false)
 

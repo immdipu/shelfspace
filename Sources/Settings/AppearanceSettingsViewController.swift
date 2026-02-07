@@ -1,8 +1,10 @@
 import Cocoa
 
 final class AppearanceSettingsViewController: SettingsPaneViewController {
-    private let viewModeControl = NSSegmentedControl(labels: ["List", "Grid"], trackingMode: .selectOne, target: nil, action: nil)
     private let densityControl = NSSegmentedControl(labels: ["Compact", "Comfortable", "Large"], trackingMode: .selectOne, target: nil, action: nil)
+    private let thumbnailStyleControl = NSSegmentedControl(labels: ["Contain", "Cover"], trackingMode: .selectOne, target: nil, action: nil)
+    private let showFileSizeToggle = NSSwitch()
+    private let cornerRadiusControl = NSSegmentedControl(labels: ["Square", "Rounded", "Pill"], trackingMode: .selectOne, target: nil, action: nil)
 
     init() {
         super.init(title: "Appearance", symbolName: "paintbrush")
@@ -15,25 +17,43 @@ final class AppearanceSettingsViewController: SettingsPaneViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        viewModeControl.target = self
-        viewModeControl.action = #selector(viewModeChanged)
-        viewModeControl.controlSize = .small
-        viewModeControl.segmentStyle = .rounded
-
         densityControl.target = self
         densityControl.action = #selector(densityChanged)
         densityControl.controlSize = .small
         densityControl.segmentStyle = .rounded
 
-        let viewSection = makeSection(
-            title: "Display",
+        thumbnailStyleControl.target = self
+        thumbnailStyleControl.action = #selector(thumbnailStyleChanged)
+        thumbnailStyleControl.controlSize = .small
+        thumbnailStyleControl.segmentStyle = .rounded
+
+        showFileSizeToggle.target = self
+        showFileSizeToggle.action = #selector(showFileSizeChanged)
+        showFileSizeToggle.controlSize = .small
+
+        cornerRadiusControl.target = self
+        cornerRadiusControl.action = #selector(cornerRadiusChanged)
+        cornerRadiusControl.controlSize = .small
+        cornerRadiusControl.segmentStyle = .rounded
+
+        let gridSection = makeSection(
+            title: "Grid Layout",
             rows: [
-                makeRow(label: "Default view", control: viewModeControl),
-                makeRow(label: "Grid density", control: densityControl)
+                makeRow(label: "Grid density", control: densityControl),
+                makeRow(label: "Thumbnail style", control: thumbnailStyleControl),
             ]
         )
 
-        addSection(viewSection)
+        let cardSection = makeSection(
+            title: "Cards",
+            rows: [
+                makeRow(label: "Card corners", control: cornerRadiusControl),
+                makeRow(label: "Show file size", control: showFileSizeToggle),
+            ]
+        )
+
+        addSection(gridSection)
+        addSection(cardSection)
         syncUI()
 
         NotificationCenter.default.addObserver(self, selector: #selector(syncUI), name: .settingsDidChange, object: nil)
@@ -42,12 +62,6 @@ final class AppearanceSettingsViewController: SettingsPaneViewController {
 
     deinit { NotificationCenter.default.removeObserver(self) }
 
-    @objc private func viewModeChanged() {
-        let selectedIndex = viewModeControl.selectedSegment
-        let mode: DesignSystem.ViewMode = (selectedIndex == 0) ? .list : .grid
-        GridDensityManager.shared.currentViewMode = mode
-    }
-
     @objc private func densityChanged() {
         let densities: [DesignSystem.CardSize] = [.compact, .comfortable, .large]
         let index = densityControl.selectedSegment
@@ -55,10 +69,25 @@ final class AppearanceSettingsViewController: SettingsPaneViewController {
         GridDensityManager.shared.currentDensity = densities[index]
     }
 
-    @objc private func syncUI() {
-        let viewMode = GridDensityManager.shared.currentViewMode
-        viewModeControl.selectedSegment = (viewMode == .list) ? 0 : 1
+    @objc private func thumbnailStyleChanged() {
+        let styles: [DesignSystem.ThumbnailStyle] = [.contain, .cover]
+        let index = thumbnailStyleControl.selectedSegment
+        guard styles.indices.contains(index) else { return }
+        SettingsStore.shared.thumbnailStyle = styles[index]
+    }
 
+    @objc private func showFileSizeChanged() {
+        SettingsStore.shared.showFileSizeInGrid = showFileSizeToggle.state == .on
+    }
+
+    @objc private func cornerRadiusChanged() {
+        let radii = [4, 12, 20]
+        let index = cornerRadiusControl.selectedSegment
+        guard radii.indices.contains(index) else { return }
+        SettingsStore.shared.cardCornerRadius = radii[index]
+    }
+
+    @objc private func syncUI() {
         let density = GridDensityManager.shared.currentDensity
         switch density {
         case .compact:
@@ -67,6 +96,20 @@ final class AppearanceSettingsViewController: SettingsPaneViewController {
             densityControl.selectedSegment = 1
         case .large:
             densityControl.selectedSegment = 2
+        }
+
+        let thumbStyle = SettingsStore.shared.thumbnailStyle
+        thumbnailStyleControl.selectedSegment = (thumbStyle == .contain) ? 0 : 1
+
+        showFileSizeToggle.state = SettingsStore.shared.showFileSizeInGrid ? .on : .off
+
+        let radius = SettingsStore.shared.cardCornerRadius
+        if radius <= 4 {
+            cornerRadiusControl.selectedSegment = 0
+        } else if radius <= 12 {
+            cornerRadiusControl.selectedSegment = 1
+        } else {
+            cornerRadiusControl.selectedSegment = 2
         }
     }
 }
