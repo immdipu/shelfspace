@@ -80,7 +80,7 @@ const DownloadSection = () => {
                 Source Code
               </a>
             </div>
-            
+
             {/* First launch note */}
             <div className="mt-6 flex items-center justify-center gap-2 text-xs text-ash-600">
               <span className="w-1 h-1 rounded-full bg-ash-600/40" />

@@ -49,20 +49,24 @@ A native macOS menu bar clipboard manager built with Swift. Capture images, text
 This is normal for open-source apps. ShelfSpace is safe but not notarized with Apple.
 
 **Method 1 (Recommended):**
+
 1. **Right-click** ShelfSpace.app in Applications folder
-2. Select **"Open"** from the context menu  
+2. Select **"Open"** from the context menu
 3. Click **"Open"** again in the security dialog
 4. The app will now run and be trusted permanently
 
 **Method 2:**
+
 1. Go to **System Settings** → **Privacy & Security**
 2. Scroll down to find **"ShelfSpace was blocked..."**
 3. Click **"Open Anyway"**
 
 **If you see "damaged and can't be opened":**
+
 ```bash
 xattr -cr /Applications/ShelfSpace.app
 ```
+
 Then try Method 1 above.
 
 You only need to do this once - the app will launch normally afterward.
@@ -117,14 +121,14 @@ Sources/
 
 All settings are accessible from the gear icon in the app header:
 
-| Category | Settings |
-|---|---|
-| **General** | Show in menu bar, show in Dock, launch at login |
-| **Clipboard** | Enable/disable monitoring, polling interval, max file size, max text length |
-| **Capture** | Toggle file/image/text capture independently, ignore duplicates |
-| **Storage** | Max items (up to 1000), auto-clear retention days |
-| **Appearance** | Thumbnail style (contain/cover), show file size, corner radius |
-| **About** | Version info, GitHub link, report issues |
+| Category       | Settings                                                                    |
+| -------------- | --------------------------------------------------------------------------- |
+| **General**    | Show in menu bar, show in Dock, launch at login                             |
+| **Clipboard**  | Enable/disable monitoring, polling interval, max file size, max text length |
+| **Capture**    | Toggle file/image/text capture independently, ignore duplicates             |
+| **Storage**    | Max items (up to 1000), auto-clear retention days                           |
+| **Appearance** | Thumbnail style (contain/cover), show file size, corner radius              |
+| **About**      | Version info, GitHub link, report issues                                    |
 
 ## Tech Stack
 
