@@ -200,9 +200,7 @@ const Hero = () => {
           className="flex flex-col sm:flex-row gap-3 mb-16"
         >
           <a
-            href="https://github.com/immdipu/shelfspace/releases"
-            target="_blank"
-            rel="noopener noreferrer"
+            href="https://github.com/immdipu/shelfspace/releases/latest/download/ShelfSpace.dmg"
             className="btn-violet"
           >
             <Download className="w-4.5 h-4.5" />

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ShelfSpace GitHub Release Creation Script
-# This script helps you create a GitHub release with the built DMG
+# Creates a GitHub release with the built DMG using `gh` CLI
 
 set -e
 
@@ -16,41 +16,48 @@ fi
 echo "🚀 Creating GitHub Release for ShelfSpace v$APP_VERSION"
 echo "=================================================="
 
+# Check if gh CLI is installed
+if ! command -v gh &> /dev/null; then
+    echo "❌ GitHub CLI (gh) is not installed."
+    echo "💡 Install it with: brew install gh"
+    exit 1
+fi
+
+# Check if authenticated
+if ! gh auth status &> /dev/null; then
+    echo "❌ Not authenticated with GitHub CLI."
+    echo "💡 Run: gh auth login"
+    exit 1
+fi
+
 # Check if we have the built files
-DMG_FILE="dist/$APP_NAME-$APP_VERSION.dmg"
+DMG_VERSIONED="dist/$APP_NAME-$APP_VERSION.dmg"
+DMG_STABLE="dist/$APP_NAME.dmg"
 CHECKSUM_FILE="dist/$APP_NAME-$APP_VERSION.dmg.sha256"
-RELEASE_INFO_FILE="dist/RELEASE_INFO.txt"
 
-if [ ! -f "$DMG_FILE" ]; then
-    echo "❌ DMG file not found: $DMG_FILE"
-    echo "💡 Run './release.sh' first to build the DMG"
+if [ ! -f "$DMG_VERSIONED" ]; then
+    echo "❌ DMG file not found: $DMG_VERSIONED"
+    echo "💡 Run 'make release' first to build the DMG"
     exit 1
 fi
 
-if [ ! -f "$CHECKSUM_FILE" ]; then
-    echo "❌ Checksum file not found: $CHECKSUM_FILE"
-    echo "💡 Run './release.sh' first to generate checksums"
-    exit 1
+if [ ! -f "$DMG_STABLE" ]; then
+    echo "⚠️  Stable DMG not found, creating copy..."
+    cp "$DMG_VERSIONED" "$DMG_STABLE"
 fi
 
-echo "✅ Found all required files:"
-echo "   📦 DMG: $DMG_FILE"
-echo "   🔐 Checksum: $CHECKSUM_FILE"
-echo "   📄 Release Info: $RELEASE_INFO_FILE"
+echo "✅ Found release files:"
+echo "   📦 $DMG_VERSIONED"
+echo "   📦 $DMG_STABLE (stable download URL)"
+[ -f "$CHECKSUM_FILE" ] && echo "   🔐 $CHECKSUM_FILE"
 echo ""
 
-# Check if we're in a git repository
-if [ ! -d ".git" ]; then
-    echo "❌ Not in a git repository"
-    exit 1
-fi
-
-# Check if we have uncommitted changes
+# Check for uncommitted changes
 if ! git diff-index --quiet HEAD --; then
-    echo "⚠️  You have uncommitted changes. Commit them first:"
+    echo "⚠️  You have uncommitted changes:"
     git status --porcelain
     echo ""
-    read -p "Do you want to continue anyway? (y/N): " -n 1 -r
+    read -p "Continue anyway? (y/N): " -n 1 -r
     echo
     if [[ ! $REPLY =~ ^[Yy]$ ]]; then
         exit 1
@@ -60,62 +67,68 @@ fi
 # Check if tag already exists
 if git rev-parse "v$APP_VERSION" >/dev/null 2>&1; then
     echo "⚠️  Tag v$APP_VERSION already exists"
-    read -p "Do you want to delete it and recreate? (y/N): " -n 1 -r
+    read -p "Delete and recreate? (y/N): " -n 1 -r
     echo
     if [[ $REPLY =~ ^[Yy]$ ]]; then
         git tag -d "v$APP_VERSION"
         git push origin --delete "v$APP_VERSION" 2>/dev/null || true
+        # Also delete the existing release if any
+        gh release delete "v$APP_VERSION" --yes 2>/dev/null || true
     else
         exit 1
     fi
 fi
 
+# Create and push tag
 echo "📝 Creating git tag v$APP_VERSION..."
-git tag -a "v$APP_VERSION" -m "ShelfSpace v$APP_VERSION
-
-Features:
-• Lightweight temporary file and clipboard manager
-• Drag & drop files up to 200MB
-• Automatic screenshot detection
-• Copy/paste text and images
-• Smart file categorization
-• Pin important items
-
-System Requirements:
-- macOS 13.0 (Ventura) or later
-- Intel or Apple Silicon Mac"
+git tag -a "v$APP_VERSION" -m "ShelfSpace v$APP_VERSION"
 
 echo "🚀 Pushing tag to GitHub..."
 git push origin "v$APP_VERSION"
 
+# Create GitHub release with gh CLI
+echo "📦 Creating GitHub release..."
+
+RELEASE_BODY="## ShelfSpace v$APP_VERSION
+
+A native macOS menu bar clipboard manager built with Swift.
+
+### Features
+- Smart clipboard monitoring — auto-captures images, text, and files
+- Drag & drop — drop files in, drag items out to any app
+- Grid & list views with 3 density levels
+- Content filtering — All, Pinned, Images, Text, Files tabs
+- Pin important items to protect from auto-cleanup
+- Rich previews — image thumbnails, text rendering, file type icons
+- Quick actions on hover with satisfying animations
+- Persistent storage — survives app restarts
+- Deeply customizable settings
+- Native Swift performance, minimal memory footprint
+- Launch at login support
+
+### Installation
+1. Download **ShelfSpace.dmg** below
+2. Open the DMG file
+3. Drag ShelfSpace to your Applications folder
+4. Launch from Applications (right-click → Open on first launch if unsigned)
+
+### System Requirements
+- macOS 13.0 (Ventura) or later
+- Intel or Apple Silicon Mac"
+
+# Build the gh release create command with available assets
+ASSETS=("$DMG_STABLE" "$DMG_VERSIONED")
+[ -f "$CHECKSUM_FILE" ] && ASSETS+=("$CHECKSUM_FILE")
+
+gh release create "v$APP_VERSION" \
+    --title "ShelfSpace v$APP_VERSION" \
+    --notes "$RELEASE_BODY" \
+    "${ASSETS[@]}"
+
 echo ""
-echo "🎉 RELEASE PROCESS INITIATED!"
+echo "🎉 RELEASE PUBLISHED!"
 echo "=================================================="
-echo "✅ Git tag v$APP_VERSION created and pushed"
-echo "🔄 GitHub Actions will now build and create the release automatically"
+echo "🔗 https://github.com/immdipu/shelfspace/releases/tag/v$APP_VERSION"
 echo ""
-echo "📍 Next steps:"
-echo "1. Go to: https://github.com/immdipu/shelfspace/actions"
-echo "2. Wait for the 'Build and Release ShelfSpace' workflow to complete"
-echo "3. Check the release at: https://github.com/immdipu/shelfspace/releases"
-echo ""
-echo "📦 Manual release option:"
-echo "If the automated release fails, you can create it manually at:"
-echo "https://github.com/immdipu/shelfspace/releases/new?tag=v$APP_VERSION"
-echo ""
-echo "🔗 Files to upload manually (if needed):"
-echo "   - $DMG_FILE"
-echo "   - $CHECKSUM_FILE"
-echo "   - $RELEASE_INFO_FILE"
-
-
-
-
-
-
-
-
-
-
-
-                                                                                                                                                                                            
+echo "📥 Direct download URL (use this on landing page):"
+echo "   https://github.com/immdipu/shelfspace/releases/latest/download/ShelfSpace.dmg"

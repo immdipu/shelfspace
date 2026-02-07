@@ -8,6 +8,7 @@ protocol HeaderViewDelegate: AnyObject {
 class HeaderView: NSView {
     weak var delegate: HeaderViewDelegate?
 
+    private let logoView = NSView()
     private let titleLabel = NSTextField()
     private let settingsButton = HeaderButton(symbolName: "gearshape", label: "Settings")
     private let closeButton = HeaderButton(symbolName: "xmark", label: "Close")
@@ -34,6 +35,12 @@ class HeaderView: NSView {
     }
 
     private func setupTitle() {
+        // Logo icon
+        logoView.wantsLayer = true
+        logoView.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(logoView)
+        drawShelfSpaceLogo(in: logoView, size: 22)
+
         titleLabel.stringValue = "ShelfSpace"
         titleLabel.font = DesignSystem.Typography.title
         titleLabel.textColor = AppColors.textPrimary
@@ -42,6 +49,39 @@ class HeaderView: NSView {
         titleLabel.backgroundColor = .clear
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
         addSubview(titleLabel)
+    }
+
+    private func drawShelfSpaceLogo(in container: NSView, size: CGFloat) {
+        let gradient = CAGradientLayer()
+        gradient.colors = [
+            NSColor(red: 0x8B/255.0, green: 0x5C/255.0, blue: 0xF6/255.0, alpha: 1.0).cgColor,
+            NSColor(red: 0x7C/255.0, green: 0x3A/255.0, blue: 0xED/255.0, alpha: 1.0).cgColor,
+        ]
+        gradient.startPoint = CGPoint(x: 0, y: 0)
+        gradient.endPoint = CGPoint(x: 1, y: 1)
+        gradient.frame = CGRect(x: 0, y: 0, width: size, height: size)
+        gradient.cornerRadius = size * 0.22
+
+        container.layer?.addSublayer(gradient)
+
+        let barSpecs: [(yFraction: CGFloat, widthFraction: CGFloat, opacity: Float)] = [
+            (0.62, 0.64, 0.95),
+            (0.44, 0.44, 0.70),
+            (0.26, 0.54, 0.45),
+        ]
+
+        for spec in barSpecs {
+            let bar = CALayer()
+            let barW = size * spec.widthFraction
+            let barH = size * 0.13
+            let barX = size * 0.18
+            let barY = size - (size * spec.yFraction) - barH
+            bar.frame = CGRect(x: barX, y: barY, width: barW, height: barH)
+            bar.backgroundColor = NSColor.white.cgColor
+            bar.cornerRadius = barH * 0.31
+            bar.opacity = spec.opacity
+            gradient.addSublayer(bar)
+        }
     }
 
     private func setupButtons() {
@@ -65,8 +105,14 @@ class HeaderView: NSView {
 
     private func setupConstraints() {
         NSLayoutConstraint.activate([
-            // Title: leading 16px, centered vertically
-            titleLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 16),
+            // Logo: leading 16px, centered vertically
+            logoView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 16),
+            logoView.centerYAnchor.constraint(equalTo: centerYAnchor),
+            logoView.widthAnchor.constraint(equalToConstant: 22),
+            logoView.heightAnchor.constraint(equalToConstant: 22),
+
+            // Title: after logo with 8px gap, centered vertically
+            titleLabel.leadingAnchor.constraint(equalTo: logoView.trailingAnchor, constant: 8),
             titleLabel.centerYAnchor.constraint(equalTo: centerYAnchor),
 
             // Close button (rightmost): 26x26

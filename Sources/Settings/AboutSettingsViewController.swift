@@ -44,14 +44,12 @@ final class AboutSettingsViewController: SettingsPaneViewController {
         cardView.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(cardView)
 
-        // App icon
-        let iconView = NSImageView()
-        if let appIcon = NSImage(named: NSImage.applicationIconName) {
-            iconView.image = appIcon
-        }
-        iconView.imageScaling = .scaleProportionallyUpOrDown
+        // App icon - custom ShelfSpace logo
+        let iconView = NSView()
+        iconView.wantsLayer = true
         iconView.translatesAutoresizingMaskIntoConstraints = false
         cardView.addSubview(iconView)
+        drawShelfSpaceLogo(in: iconView, size: 64)
 
         // App name
         let titleLabel = NSTextField(labelWithString: AppDelegate.appName)
@@ -149,6 +147,41 @@ final class AboutSettingsViewController: SettingsPaneViewController {
         ])
 
         return container
+    }
+
+    private func drawShelfSpaceLogo(in container: NSView, size: CGFloat) {
+        let gradient = CAGradientLayer()
+        gradient.colors = [
+            NSColor(red: 0x8B/255.0, green: 0x5C/255.0, blue: 0xF6/255.0, alpha: 1.0).cgColor,
+            NSColor(red: 0x7C/255.0, green: 0x3A/255.0, blue: 0xED/255.0, alpha: 1.0).cgColor,
+        ]
+        gradient.startPoint = CGPoint(x: 0, y: 0)
+        gradient.endPoint = CGPoint(x: 1, y: 1)
+        gradient.frame = CGRect(x: 0, y: 0, width: size, height: size)
+        gradient.cornerRadius = size * 0.22
+
+        container.layer?.addSublayer(gradient)
+
+        // Three white bars (bottom-up since AppKit is flipped in layers)
+        let barSpecs: [(yFraction: CGFloat, widthFraction: CGFloat, opacity: Float)] = [
+            (0.62, 0.64, 0.95),  // top bar (longest)
+            (0.44, 0.44, 0.70),  // middle bar
+            (0.26, 0.54, 0.45),  // bottom bar (medium)
+        ]
+
+        for spec in barSpecs {
+            let bar = CALayer()
+            let barW = size * spec.widthFraction
+            let barH = size * 0.13
+            let barX = size * 0.18
+            // Flip Y for Core Animation (origin is bottom-left)
+            let barY = size - (size * spec.yFraction) - barH
+            bar.frame = CGRect(x: barX, y: barY, width: barW, height: barH)
+            bar.backgroundColor = NSColor.white.cgColor
+            bar.cornerRadius = barH * 0.31
+            bar.opacity = spec.opacity
+            gradient.addSublayer(bar)
+        }
     }
 
     @objc private func openGitHub() {

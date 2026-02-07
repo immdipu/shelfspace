@@ -78,15 +78,22 @@ hdiutil create -volname "$VOLUME_NAME" -srcfolder "$TEMP_DMG_DIR" -ov -format UD
 # Clean up
 rm -rf "$TEMP_DMG_DIR"
 
+# Create a version-less copy for stable download URL
+# GitHub releases/latest/download/ShelfSpace.dmg will always point to the latest
+cp "$DIST_DIR/$DMG_NAME.dmg" "$DIST_DIR/$APP_NAME.dmg"
+
 # Get final DMG size
 DMG_FILE_SIZE=$(du -h "$DIST_DIR/$DMG_NAME.dmg" | cut -f1)
 
 echo "✅ DMG created successfully!"
-echo "📦 File: $DIST_DIR/$DMG_NAME.dmg"
+echo "📦 Versioned:  $DIST_DIR/$DMG_NAME.dmg"
+echo "📦 Stable URL: $DIST_DIR/$APP_NAME.dmg"
 echo "📏 Size: $DMG_FILE_SIZE"
 echo ""
 echo "To test the DMG:"
 echo "  open $DIST_DIR/$DMG_NAME.dmg"
 echo ""
 echo "To distribute:"
-echo "  Upload $DIST_DIR/$DMG_NAME.dmg to your preferred distribution platform" 
+echo "  Upload BOTH files to your GitHub release:"
+echo "    - $DIST_DIR/$DMG_NAME.dmg  (versioned)"
+echo "    - $DIST_DIR/$APP_NAME.dmg  (stable download URL)" 

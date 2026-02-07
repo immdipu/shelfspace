@@ -68,9 +68,7 @@ const Navbar = () => {
             <Github className="w-4.5 h-4.5" />
           </a>
           <a
-            href="https://github.com/immdipu/shelfspace/releases"
-            target="_blank"
-            rel="noopener noreferrer"
+            href="https://github.com/immdipu/shelfspace/releases/latest/download/ShelfSpace.dmg"
             className="inline-flex items-center gap-2 text-sm font-medium bg-violet/10 text-violet-200 hover:bg-violet/20 border border-violet/20 hover:border-violet/40 px-4 py-2 rounded-lg transition-all duration-200"
           >
             <Download className="w-3.5 h-3.5" />
@@ -118,9 +116,7 @@ const Navbar = () => {
                   GitHub
                 </a>
                 <a
-                  href="https://github.com/immdipu/shelfspace/releases"
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  href="https://github.com/immdipu/shelfspace/releases/latest/download/ShelfSpace.dmg"
                   className="flex-1 text-center py-3 text-sm font-medium bg-violet text-white rounded-lg"
                 >
                   Download

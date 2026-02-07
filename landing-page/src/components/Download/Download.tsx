@@ -52,9 +52,7 @@ const DownloadSection = () => {
 
             {/* CTA */}
             <motion.a
-              href="https://github.com/immdipu/shelfspace/releases"
-              target="_blank"
-              rel="noopener noreferrer"
+              href="https://github.com/immdipu/shelfspace/releases/latest/download/ShelfSpace.dmg"
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
               className="btn-violet text-base py-4 px-10"
