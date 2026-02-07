@@ -72,9 +72,9 @@ enum DesignSystem {
     // MARK: - Action Buttons
 
     enum ActionButton {
-        static let gridSize: CGFloat = 28
+        static let gridSize: CGFloat = 30
         static let listSize: CGFloat = 28
-        static let gridCornerRadius: CGFloat = 6  // rounded-md
+        static let gridCornerRadius: CGFloat = 5  // slightly softer at 24px
         static let listCornerRadius: CGFloat = 6  // rounded-md
     }
 

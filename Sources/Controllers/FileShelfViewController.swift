@@ -164,8 +164,14 @@ class FileShelfViewController: NSViewController {
         scrollView.contentView.backgroundColor = AppColors.background
         scrollView.contentView.wantsLayer = true
         scrollView.contentView.layer?.backgroundColor = AppColors.background.cgColor
+        let themedScroller = ThemedScroller()
+        themedScroller.controlSize = .mini
+        themedScroller.knobStyle = .light
+        scrollView.verticalScroller = themedScroller
         scrollView.scrollerStyle = .overlay
         scrollView.scrollerKnobStyle = .light
+        scrollView.scrollerInsets = NSEdgeInsets(top: 4, left: 0, bottom: 4, right: 2)
+        scrollView.contentInsets = NSEdgeInsets(top: 0, left: 0, bottom: 0, right: 6)
         scrollView.translatesAutoresizingMaskIntoConstraints = false
         // Match collection background to app theme
         let collectionBackgroundView = NSView()

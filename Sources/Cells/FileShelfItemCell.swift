@@ -575,7 +575,7 @@ class GridActionButton: NSButton {
         self.isDanger = isDanger
         super.init(frame: .zero)
         if let img = NSImage(systemSymbolName: symbolName, accessibilityDescription: label) {
-            let config = NSImage.SymbolConfiguration(pointSize: 12, weight: .regular)
+            let config = NSImage.SymbolConfiguration(pointSize: 11, weight: .regular)
             self.image = img.withSymbolConfiguration(config)
         }
         setupButton()
@@ -594,13 +594,26 @@ class GridActionButton: NSButton {
         layer?.borderColor = AppColors.whiteOverlay6.cgColor
         layer?.masksToBounds = true
         contentTintColor = AppColors.textLight
+        focusRingType = .none
+        setContentHuggingPriority(.required, for: .horizontal)
+        setContentHuggingPriority(.required, for: .vertical)
+        setContentCompressionResistancePriority(.required, for: .horizontal)
+        setContentCompressionResistancePriority(.required, for: .vertical)
     }
 
     func updateIcon(symbolName: String) {
         if let img = NSImage(systemSymbolName: symbolName, accessibilityDescription: nil) {
-            let config = NSImage.SymbolConfiguration(pointSize: 12, weight: .regular)
+            let config = NSImage.SymbolConfiguration(pointSize: 11, weight: .regular)
             self.image = img.withSymbolConfiguration(config)
         }
+    }
+
+    override var intrinsicContentSize: NSSize {
+        return NSSize(width: DesignSystem.ActionButton.gridSize, height: DesignSystem.ActionButton.gridSize)
+    }
+
+    override var alignmentRectInsets: NSEdgeInsets {
+        return NSEdgeInsets(top: 0, left: 0, bottom: 0, right: 0)
     }
 
     func setActionActive(_ active: Bool) {
