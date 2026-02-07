@@ -5,7 +5,7 @@ final class StorageSettingsViewController: SettingsPaneViewController {
     private let autoClearPopup = NSPopUpButton()
     private let storageUsedLabel = NSTextField(labelWithString: "—")
 
-    private let maxItemsOptions = [25, 50, 100, 200]
+    private let maxItemsOptions = [200, 500, 1000, 2000]
     private let autoClearOptions: [(label: String, days: Int)] = [
         ("Never", 0),
         ("1 day", 1),

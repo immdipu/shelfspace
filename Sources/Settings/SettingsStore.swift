@@ -52,7 +52,7 @@ final class SettingsStore {
         static let pollingInterval: TimeInterval = 0.5
         static let maxFileSizeMB = 200
         static let maxTextLength = 10_000
-        static let maxItems = 50
+        static let maxItems = 200
         static let autoClearDays = 0
         static let ignoreDuplicates = false
         static let thumbnailStyle = "contain"

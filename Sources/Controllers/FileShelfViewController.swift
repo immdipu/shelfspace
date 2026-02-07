@@ -27,7 +27,7 @@ class FileShelfViewController: NSViewController {
     var currentViewMode: DesignSystem.ViewMode = .list
     var items: [FileShelfItem] = []
     var filteredItems: [FileShelfItem] = []
-    let maxItems = 50
+    var maxItems: Int { SettingsStore.shared.maxItems }
     let tempDirectory: URL
 
     // MARK: - Initialization
@@ -69,6 +69,8 @@ class FileShelfViewController: NSViewController {
 
         NotificationCenter.default.addObserver(self, selector: #selector(gridDensityDidChange), name: .gridDensityChanged, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(viewModeDidChange), name: .viewModeChanged, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(clearUnpinnedItems), name: .settingsDidRequestClearUnpinned, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(clearAllHistory), name: .settingsDidRequestClearAll, object: nil)
     }
 
     deinit { NotificationCenter.default.removeObserver(self) }
@@ -348,12 +350,26 @@ class FileShelfViewController: NSViewController {
     }
 
     @objc func clearAllItems() {
+        clearUnpinnedItems()
+    }
+
+    @objc func clearUnpinnedItems() {
         let unpinnedItems = items.filter { !$0.isPinned }
         for item in unpinnedItems {
             PersistenceManager.shared.deleteFile(for: item)
             item.cleanup()
         }
         items.removeAll { !$0.isPinned }
+        PersistenceManager.shared.saveItemsDebounced(items)
+        updateContent()
+    }
+
+    @objc func clearAllHistory() {
+        for item in items {
+            PersistenceManager.shared.deleteFile(for: item)
+            item.cleanup()
+        }
+        items.removeAll()
         PersistenceManager.shared.saveItemsDebounced(items)
         updateContent()
     }
