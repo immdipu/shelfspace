@@ -1,12 +1,16 @@
 import Cocoa
 
+// Flipped view so content starts at the top (macOS default is bottom-up)
+private class FlippedView: NSView {
+    override var isFlipped: Bool { true }
+}
+
 class SettingsPaneViewController: NSViewController {
     private let paneTitle: String
     private let paneSymbolName: String
 
     private let scrollView = NSScrollView()
-    private let contentView = NSView()
-    private var sectionViews: [NSView] = []
+    private let stackView = NSStackView()
 
     init(title: String, symbolName: String) {
         self.paneTitle = title
@@ -20,7 +24,7 @@ class SettingsPaneViewController: NSViewController {
     }
 
     override func loadView() {
-        let container = NSView(frame: NSRect(x: 0, y: 0, width: 500, height: 400))
+        let container = FlippedView(frame: NSRect(x: 0, y: 0, width: 500, height: 400))
         container.wantsLayer = true
         container.layer?.backgroundColor = AppColors.background.cgColor
         view = container
@@ -33,62 +37,70 @@ class SettingsPaneViewController: NSViewController {
     }
 
     private func setupScrollView() {
+        // Document view (flipped so content flows top-to-bottom)
+        let documentView = FlippedView()
+        documentView.translatesAutoresizingMaskIntoConstraints = false
+
+        // Stack view holds all sections
+        stackView.orientation = .vertical
+        stackView.alignment = .leading
+        stackView.spacing = 16
+        stackView.translatesAutoresizingMaskIntoConstraints = false
+        stackView.edgeInsets = NSEdgeInsets(top: 20, left: 24, bottom: 20, right: 24)
+        documentView.addSubview(stackView)
+
         // Scroll view setup
         scrollView.drawsBackground = false
         scrollView.hasVerticalScroller = true
         scrollView.hasHorizontalScroller = false
         scrollView.autohidesScrollers = true
+        scrollView.scrollerStyle = .overlay
         scrollView.borderType = .noBorder
         scrollView.translatesAutoresizingMaskIntoConstraints = false
+        scrollView.documentView = documentView
+
+        // Use the app's themed scroller
+        let themedScroller = ThemedScroller()
+        themedScroller.controlSize = .mini
+        themedScroller.knobStyle = .light
+        scrollView.verticalScroller = themedScroller
+        scrollView.scrollerKnobStyle = .light
+        scrollView.scrollerInsets = NSEdgeInsets(top: 4, left: 0, bottom: 4, right: 2)
+
+        // Flipped clip view
+        let clipView = FlippedClipView()
+        clipView.drawsBackground = false
+        scrollView.contentView = clipView
+        scrollView.documentView = documentView
+
         view.addSubview(scrollView)
 
-        // Content view (flipped for top-to-bottom layout)
-        contentView.translatesAutoresizingMaskIntoConstraints = false
-        scrollView.documentView = contentView
-
         NSLayoutConstraint.activate([
+            // Scroll view fills parent
             scrollView.topAnchor.constraint(equalTo: view.topAnchor),
             scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+
+            // Document view width matches scroll view
+            documentView.leadingAnchor.constraint(equalTo: clipView.leadingAnchor),
+            documentView.trailingAnchor.constraint(equalTo: clipView.trailingAnchor),
+            documentView.topAnchor.constraint(equalTo: clipView.topAnchor),
+
+            // Stack view fills document view
+            stackView.topAnchor.constraint(equalTo: documentView.topAnchor),
+            stackView.leadingAnchor.constraint(equalTo: documentView.leadingAnchor),
+            stackView.trailingAnchor.constraint(equalTo: documentView.trailingAnchor),
+            stackView.bottomAnchor.constraint(equalTo: documentView.bottomAnchor),
         ])
     }
 
     func addSection(_ section: NSView) {
-        sectionViews.append(section)
-        contentView.addSubview(section)
-        layoutSections()
-    }
+        section.translatesAutoresizingMaskIntoConstraints = false
+        stackView.addArrangedSubview(section)
 
-    private func layoutSections() {
-        let padding: CGFloat = 24
-        let spacing: CGFloat = 16
-        var currentY: CGFloat = padding
-
-        for section in sectionViews {
-            section.translatesAutoresizingMaskIntoConstraints = false
-
-            // Remove old constraints
-            section.removeFromSuperview()
-            contentView.addSubview(section)
-
-            NSLayoutConstraint.activate([
-                section.topAnchor.constraint(equalTo: contentView.topAnchor, constant: currentY),
-                section.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: padding),
-                section.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -padding),
-            ])
-
-            section.layoutSubtreeIfNeeded()
-            let height = section.fittingSize.height
-            currentY += height + spacing
-        }
-
-        // Update content view height
-        let totalHeight = currentY + padding
-        NSLayoutConstraint.activate([
-            contentView.widthAnchor.constraint(equalTo: scrollView.widthAnchor),
-            contentView.heightAnchor.constraint(greaterThanOrEqualToConstant: totalHeight)
-        ])
+        // Make each section stretch to full width of the stack
+        section.widthAnchor.constraint(equalTo: stackView.widthAnchor, constant: -48).isActive = true
     }
 
     func makeSection(title: String, rows: [NSView]) -> NSView {
@@ -112,57 +124,38 @@ class SettingsPaneViewController: NSViewController {
         cardView.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(cardView)
 
-        // Build rows
-        var rowContainers: [NSView] = []
+        // Stack to hold rows
+        let rowStack = NSStackView()
+        rowStack.orientation = .vertical
+        rowStack.spacing = 0
+        rowStack.translatesAutoresizingMaskIntoConstraints = false
+        cardView.addSubview(rowStack)
+
+        // Add rows with separators
         for (index, row) in rows.enumerated() {
-            let rowContainer = NSView()
-            rowContainer.translatesAutoresizingMaskIntoConstraints = false
+            let rowWrapper = NSView()
+            rowWrapper.translatesAutoresizingMaskIntoConstraints = false
 
             row.translatesAutoresizingMaskIntoConstraints = false
-            rowContainer.addSubview(row)
+            rowWrapper.addSubview(row)
 
             NSLayoutConstraint.activate([
-                row.topAnchor.constraint(equalTo: rowContainer.topAnchor, constant: 10),
-                row.leadingAnchor.constraint(equalTo: rowContainer.leadingAnchor, constant: 14),
-                row.trailingAnchor.constraint(equalTo: rowContainer.trailingAnchor, constant: -14),
-                row.bottomAnchor.constraint(equalTo: rowContainer.bottomAnchor, constant: -10),
+                row.topAnchor.constraint(equalTo: rowWrapper.topAnchor, constant: 10),
+                row.leadingAnchor.constraint(equalTo: rowWrapper.leadingAnchor, constant: 14),
+                row.trailingAnchor.constraint(equalTo: rowWrapper.trailingAnchor, constant: -14),
+                row.bottomAnchor.constraint(equalTo: rowWrapper.bottomAnchor, constant: -10),
             ])
 
-            cardView.addSubview(rowContainer)
-            rowContainers.append(rowContainer)
+            rowStack.addArrangedSubview(rowWrapper)
 
-            // Add separator (except after last row)
+            // Separator between rows
             if index < rows.count - 1 {
-                let separator = NSView()
-                separator.wantsLayer = true
-                separator.layer?.backgroundColor = AppColors.border.cgColor
-                separator.translatesAutoresizingMaskIntoConstraints = false
-                cardView.addSubview(separator)
-
-                NSLayoutConstraint.activate([
-                    separator.heightAnchor.constraint(equalToConstant: 1),
-                    separator.leadingAnchor.constraint(equalTo: cardView.leadingAnchor, constant: 14),
-                    separator.trailingAnchor.constraint(equalTo: cardView.trailingAnchor),
-                    separator.topAnchor.constraint(equalTo: rowContainer.bottomAnchor),
-                ])
-            }
-        }
-
-        // Layout row containers vertically
-        for (index, rowContainer) in rowContainers.enumerated() {
-            NSLayoutConstraint.activate([
-                rowContainer.leadingAnchor.constraint(equalTo: cardView.leadingAnchor),
-                rowContainer.trailingAnchor.constraint(equalTo: cardView.trailingAnchor),
-            ])
-
-            if index == 0 {
-                rowContainer.topAnchor.constraint(equalTo: cardView.topAnchor).isActive = true
-            } else {
-                rowContainer.topAnchor.constraint(equalTo: rowContainers[index - 1].bottomAnchor, constant: 1).isActive = true
-            }
-
-            if index == rowContainers.count - 1 {
-                rowContainer.bottomAnchor.constraint(equalTo: cardView.bottomAnchor).isActive = true
+                let sep = NSView()
+                sep.wantsLayer = true
+                sep.layer?.backgroundColor = AppColors.border.cgColor
+                sep.translatesAutoresizingMaskIntoConstraints = false
+                rowStack.addArrangedSubview(sep)
+                sep.heightAnchor.constraint(equalToConstant: 1).isActive = true
             }
         }
 
@@ -174,6 +167,11 @@ class SettingsPaneViewController: NSViewController {
             cardView.leadingAnchor.constraint(equalTo: container.leadingAnchor),
             cardView.trailingAnchor.constraint(equalTo: container.trailingAnchor),
             cardView.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+
+            rowStack.topAnchor.constraint(equalTo: cardView.topAnchor),
+            rowStack.leadingAnchor.constraint(equalTo: cardView.leadingAnchor),
+            rowStack.trailingAnchor.constraint(equalTo: cardView.trailingAnchor),
+            rowStack.bottomAnchor.constraint(equalTo: cardView.bottomAnchor),
         ])
 
         return container
@@ -212,4 +210,9 @@ class SettingsPaneViewController: NSViewController {
         label.isSelectable = false
         return label
     }
+}
+
+// Flipped clip view so scroll origin is at the top
+private class FlippedClipView: NSClipView {
+    override var isFlipped: Bool { true }
 }
