@@ -71,6 +71,7 @@ class FileShelfViewController: NSViewController {
         NotificationCenter.default.addObserver(self, selector: #selector(viewModeDidChange), name: .viewModeChanged, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(clearUnpinnedItems), name: .settingsDidRequestClearUnpinned, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(clearAllHistory), name: .settingsDidRequestClearAll, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(captureTypesChanged), name: .settingsCaptureTypesChanged, object: nil)
     }
 
     deinit { NotificationCenter.default.removeObserver(self) }
@@ -236,6 +237,10 @@ class FileShelfViewController: NSViewController {
         collectionView.reloadData()
     }
 
+    @objc private func captureTypesChanged() {
+        tabBar.updateTabVisibility()
+    }
+
     // MARK: - Tab Actions
 
     @objc func tabButtonClicked(_ sender: NSButton) {
@@ -315,7 +320,22 @@ class FileShelfViewController: NSViewController {
     // MARK: - Item Management
 
     func addItems(_ newItems: [FileShelfItem]) {
-        items.insert(contentsOf: newItems, at: 0)
+        var itemsToAdd = newItems
+
+        // Filter out duplicates if setting is enabled
+        if SettingsStore.shared.ignoreDuplicates {
+            itemsToAdd = newItems.filter { newItem in
+                !items.contains { existing in
+                    isDuplicate(existing, newItem)
+                }
+            }
+            if itemsToAdd.isEmpty {
+                Logger.debug("All \(newItems.count) items filtered as duplicates", category: .clipboard)
+                return
+            }
+        }
+
+        items.insert(contentsOf: itemsToAdd, at: 0)
 
         if items.count > maxItems {
             let itemsToRemove = Array(items.suffix(from: maxItems))
@@ -328,6 +348,18 @@ class FileShelfViewController: NSViewController {
 
         PersistenceManager.shared.saveItemsDebounced(items)
         if isViewLoaded { updateContent() }
+    }
+
+    private func isDuplicate(_ a: FileShelfItem, _ b: FileShelfItem) -> Bool {
+        // Text items: compare text content
+        if a.isText && b.isText {
+            return a.textContent == b.textContent
+        }
+        // File/image items: compare name and size
+        if !a.isText && !b.isText {
+            return a.originalName == b.originalName && a.fileSize == b.fileSize
+        }
+        return false
     }
 
     func removeItem(_ item: FileShelfItem) {

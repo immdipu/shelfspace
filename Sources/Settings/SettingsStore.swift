@@ -11,6 +11,7 @@ extension Notification.Name {
     static let settingsMaxItemsChanged = Notification.Name("settingsMaxItemsChanged")
     static let settingsRetentionChanged = Notification.Name("settingsRetentionChanged")
 
+    static let settingsCaptureTypesChanged = Notification.Name("settingsCaptureTypesChanged")
     static let settingsDidRequestClearUnpinned = Notification.Name("settingsDidRequestClearUnpinned")
     static let settingsDidRequestClearAll = Notification.Name("settingsDidRequestClearAll")
     
@@ -129,6 +130,7 @@ final class SettingsStore {
         get { bool(forKey: Keys.captureFiles, default: Defaults.captureFiles) }
         set {
             defaults.set(newValue, forKey: Keys.captureFiles)
+            NotificationCenter.default.post(name: .settingsCaptureTypesChanged, object: nil)
             NotificationCenter.default.post(name: .settingsDidChange, object: nil)
         }
     }
@@ -137,6 +139,7 @@ final class SettingsStore {
         get { bool(forKey: Keys.captureImages, default: Defaults.captureImages) }
         set {
             defaults.set(newValue, forKey: Keys.captureImages)
+            NotificationCenter.default.post(name: .settingsCaptureTypesChanged, object: nil)
             NotificationCenter.default.post(name: .settingsDidChange, object: nil)
         }
     }
@@ -145,6 +148,7 @@ final class SettingsStore {
         get { bool(forKey: Keys.captureText, default: Defaults.captureText) }
         set {
             defaults.set(newValue, forKey: Keys.captureText)
+            NotificationCenter.default.post(name: .settingsCaptureTypesChanged, object: nil)
             NotificationCenter.default.post(name: .settingsDidChange, object: nil)
         }
     }

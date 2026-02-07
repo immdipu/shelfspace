@@ -20,14 +20,35 @@ class ClipboardMonitor {
     }
 
     func start() {
-        timer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
+        stop()
+        let interval = SettingsStore.shared.pollingInterval
+        timer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
             self?.checkClipboard()
         }
+
+        NotificationCenter.default.addObserver(self, selector: #selector(pollingIntervalChanged), name: .settingsPollingIntervalChanged, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(monitoringChanged), name: .settingsClipboardMonitoringChanged, object: nil)
     }
 
     func stop() {
         timer?.invalidate()
         timer = nil
+        NotificationCenter.default.removeObserver(self)
+    }
+
+    @objc private func pollingIntervalChanged() {
+        guard timer != nil else { return }
+        stop()
+        start()
+    }
+
+    @objc private func monitoringChanged() {
+        if SettingsStore.shared.clipboardMonitoringEnabled {
+            if timer == nil { start() }
+        } else {
+            timer?.invalidate()
+            timer = nil
+        }
     }
 
     func ignoreNextClipboardChange() {
@@ -51,13 +72,14 @@ class ClipboardMonitor {
 
         lastChangeCount = pasteboard.changeCount
 
+        let settings = SettingsStore.shared
         var newItems: [FileShelfItem] = []
 
         // Strategy: Only process ONE type of content per clipboard change
         // Priority: Files > Images > Text
 
         // Check for file URLs first (highest priority)
-        if let urls = pasteboard.readObjects(forClasses: [NSURL.self]) as? [URL] {
+        if settings.captureFiles, let urls = pasteboard.readObjects(forClasses: [NSURL.self]) as? [URL] {
             let fileURLs = urls.filter { $0.isFileURL }
             if !fileURLs.isEmpty {
                 for url in fileURLs {
@@ -69,7 +91,7 @@ class ClipboardMonitor {
         }
 
         // Check for images (second priority) - only if no files were found
-        if newItems.isEmpty {
+        if newItems.isEmpty && settings.captureImages {
             if let images = pasteboard.readObjects(forClasses: [NSImage.self]) as? [NSImage] {
                 if !images.isEmpty {
                     for (index, image) in images.enumerated() {
@@ -82,16 +104,17 @@ class ClipboardMonitor {
         }
 
         // Check for text (lowest priority) - only if no files or images were found
-        if newItems.isEmpty {
+        if newItems.isEmpty && settings.captureText {
+            let maxLen = settings.maxTextLength
             if let strings = pasteboard.readObjects(forClasses: [NSString.self]) as? [String] {
                 for string in strings {
                     // Check if it's a file path
                     let url = URL(fileURLWithPath: string)
                     if FileManager.default.fileExists(atPath: url.path) {
-                        if let item = createItemFromURL(url) {
+                        if settings.captureFiles, let item = createItemFromURL(url) {
                             newItems.append(item)
                         }
-                    } else if string.count > 3 && string.count < 10000 { // Reasonable text length
+                    } else if string.count > 3 && string.count < maxLen {
                         // It's regular text content
                         let textItem = FileShelfItem(textContent: string, origin: .clipboard)
                         newItems.append(textItem)
@@ -144,8 +167,8 @@ class ClipboardMonitor {
             let attributes = try FileManager.default.attributesOfItem(atPath: url.path)
             let fileSize = attributes[.size] as? Int64 ?? 0
 
-            // Check file size limit (200 MB)
-            let maxFileSize: Int64 = 200 * 1024 * 1024 // 200 MB in bytes
+            // Check file size limit from settings
+            let maxFileSize: Int64 = Int64(SettingsStore.shared.maxFileSizeMB) * 1024 * 1024
             guard fileSize <= maxFileSize else {
                 Logger.warning("File too large: \(fileSize) bytes (max: \(maxFileSize))", category: .clipboard)
                 return nil

@@ -63,7 +63,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 self?.fileShelfViewController.addItems(items)
             }
         }
-        clipboardMonitor.start()
+        if SettingsStore.shared.clipboardMonitoringEnabled {
+            clipboardMonitor.start()
+        }
     }
     
     @objc func togglePopover(_ sender: AnyObject?) {

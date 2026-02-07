@@ -18,15 +18,31 @@ class TabBar: NSView {
 
     private var currentFilter: ContentFilter = .all
     private var currentViewMode: DesignSystem.ViewMode = .list
+    private var hiddenFilters: Set<ContentFilter> = []
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
         setupView()
+        observeCaptureSettings()
+        updateTabVisibility()
     }
 
     required init?(coder: NSCoder) {
         super.init(coder: coder)
         setupView()
+        observeCaptureSettings()
+        updateTabVisibility()
+    }
+
+    deinit { NotificationCenter.default.removeObserver(self) }
+
+    private func observeCaptureSettings() {
+        NotificationCenter.default.addObserver(self, selector: #selector(captureSettingsChanged), name: .settingsCaptureTypesChanged, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(captureSettingsChanged), name: .settingsDidReset, object: nil)
+    }
+
+    @objc private func captureSettingsChanged() {
+        updateTabVisibility()
     }
 
     private func setupView() {
@@ -208,6 +224,33 @@ class TabBar: NSView {
         updateViewToggleState()
     }
 
+    func updateTabVisibility() {
+        let settings = SettingsStore.shared
+        var newHidden = Set<ContentFilter>()
+        if !settings.captureImages { newHidden.insert(.images) }
+        if !settings.captureText { newHidden.insert(.text) }
+        if !settings.captureFiles { newHidden.insert(.files) }
+
+        guard newHidden != hiddenFilters else { return }
+        hiddenFilters = newHidden
+
+        for tab in tabButtons {
+            guard let filter = tab.filter else { continue }
+            tab.isHidden = hiddenFilters.contains(filter)
+        }
+
+        // If the currently selected tab got hidden, fall back to All
+        if hiddenFilters.contains(currentFilter) {
+            currentFilter = .all
+            updateTabAppearance()
+            delegate?.tabBar(self, didSelectFilter: .all)
+        }
+
+        needsLayout = true
+        layoutSubtreeIfNeeded()
+        updateIndicatorPosition(animated: false)
+    }
+
     // MARK: - Appearance
 
     private func updateTabAppearance() {
@@ -221,6 +264,7 @@ class TabBar: NSView {
               selectedIndex < tabButtons.count else { return }
 
         let selectedTab = tabButtons[selectedIndex]
+        guard !selectedTab.isHidden else { return }
 
         // Need the tab's frame relative to the container
         let tabFrame = selectedTab.frame
