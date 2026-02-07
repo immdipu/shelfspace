@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # ShelfSpace DMG Creation Script
+# Creates a DMG with the classic "drag to Applications" layout
 
 set -e
 
@@ -12,13 +13,12 @@ else
     echo "⚠️  version.conf not found, using defaults"
     APP_NAME="ShelfSpace"
     APP_VERSION="1.0.0"
-    GITHUB_URL="https://github.com/immdipu"
 fi
 
 DMG_NAME="${APP_NAME}-${APP_VERSION}"
-VOLUME_NAME="$APP_NAME $APP_VERSION"
-DMG_BACKGROUND="dmg-background.png"
+VOLUME_NAME="$APP_NAME"
 DIST_DIR="dist"
+FINAL_DMG="$DIST_DIR/$DMG_NAME.dmg"
 
 echo "📦 Creating DMG installer for $APP_NAME v$APP_VERSION..."
 
@@ -32,68 +32,72 @@ fi
 rm -rf "$DIST_DIR"
 mkdir -p "$DIST_DIR"
 
-# Create temporary DMG directory
-TEMP_DMG_DIR="$DIST_DIR/dmg_temp"
-mkdir -p "$TEMP_DMG_DIR"
+# Create temporary staging directory with just the app and Applications symlink
+STAGING="$DIST_DIR/_staging"
+mkdir -p "$STAGING"
+cp -R "$APP_NAME.app" "$STAGING/"
+ln -s /Applications "$STAGING/Applications"
 
-# Copy app to temp directory
-cp -R "$APP_NAME.app" "$TEMP_DMG_DIR/"
-
-# Create Applications symlink
-ln -s /Applications "$TEMP_DMG_DIR/Applications"
-
-# Create README file for the DMG
-cat > "$TEMP_DMG_DIR/README.txt" << EOF
-ShelfSpace v$APP_VERSION
-
-Installation Instructions:
-1. Drag ShelfSpace.app to the Applications folder
-2. Launch ShelfSpace from Applications or Launchpad
-3. Grant necessary permissions when prompted
-
-Features:
-• Lightweight temporary file and clipboard manager
-• Drag & drop files up to 200MB
-• Automatic screenshot detection
-• Copy/paste text and images
-• Smart file categorization
-• Pin important items
-
-For support and updates, visit:
-$GITHUB_URL
-
-Copyright © $(date +%Y) Dipu Chaurasiya. All rights reserved.
-EOF
-
-# Calculate size needed for DMG (app size + 50MB buffer)
 APP_SIZE=$(du -sm "$APP_NAME.app" | cut -f1)
-DMG_SIZE=$((APP_SIZE + 50))
+echo "📏 App size: ${APP_SIZE}MB"
 
-echo "📏 App size: ${APP_SIZE}MB, DMG size: ${DMG_SIZE}MB"
-
-# Create DMG directly from the temp directory
+# Create compressed DMG directly from staging
 echo "🔨 Creating DMG..."
-hdiutil create -volname "$VOLUME_NAME" -srcfolder "$TEMP_DMG_DIR" -ov -format UDZO "$DIST_DIR/$DMG_NAME.dmg"
+hdiutil create \
+    -volname "$VOLUME_NAME" \
+    -srcfolder "$STAGING" \
+    -ov \
+    -format UDZO \
+    "$FINAL_DMG"
 
-# Clean up
-rm -rf "$TEMP_DMG_DIR"
+rm -rf "$STAGING"
 
-# Create a version-less copy for stable download URL
-# GitHub releases/latest/download/ShelfSpace.dmg will always point to the latest
-cp "$DIST_DIR/$DMG_NAME.dmg" "$DIST_DIR/$APP_NAME.dmg"
+# Apply Finder layout by mounting the DMG and using AppleScript
+echo "🎨 Applying Finder window layout..."
+MOUNT_OUTPUT=$(hdiutil attach "$FINAL_DMG" -noverify -noautoopen 2>&1 || true)
+MOUNT_POINT=$(echo "$MOUNT_OUTPUT" | grep -o '/Volumes/.*' | head -1)
 
-# Get final DMG size
-DMG_FILE_SIZE=$(du -h "$DIST_DIR/$DMG_NAME.dmg" | cut -f1)
+if [ -n "$MOUNT_POINT" ]; then
+    osascript <<APPLESCRIPT || true
+tell application "Finder"
+    tell disk "$VOLUME_NAME"
+        open
+        set current view of container window to icon view
+        set toolbar visible of container window to false
+        set statusbar visible of container window to false
+        set bounds of container window to {200, 150, 740, 470}
 
+        set viewOptions to the icon view options of container window
+        set arrangement of viewOptions to not arranged
+        set icon size of viewOptions to 80
+
+        set position of item "$APP_NAME.app" of container window to {135, 150}
+        set position of item "Applications" of container window to {405, 150}
+
+        close
+        open
+        delay 1
+        close
+    end tell
+end tell
+APPLESCRIPT
+
+    sleep 2
+    hdiutil detach "$MOUNT_POINT" -quiet 2>/dev/null || hdiutil detach "$MOUNT_POINT" -force 2>/dev/null || true
+    echo "   ✅ Layout applied"
+else
+    echo "   ⚠️  Could not mount for layout (DMG still works)"
+fi
+
+# Create version-less copy for stable download URL
+cp "$FINAL_DMG" "$DIST_DIR/$APP_NAME.dmg"
+
+DMG_FILE_SIZE=$(du -h "$FINAL_DMG" | cut -f1)
+
+echo ""
 echo "✅ DMG created successfully!"
-echo "📦 Versioned:  $DIST_DIR/$DMG_NAME.dmg"
+echo "📦 Versioned:  $FINAL_DMG"
 echo "📦 Stable URL: $DIST_DIR/$APP_NAME.dmg"
 echo "📏 Size: $DMG_FILE_SIZE"
 echo ""
-echo "To test the DMG:"
-echo "  open $DIST_DIR/$DMG_NAME.dmg"
-echo ""
-echo "To distribute:"
-echo "  Upload BOTH files to your GitHub release:"
-echo "    - $DIST_DIR/$DMG_NAME.dmg  (versioned)"
-echo "    - $DIST_DIR/$APP_NAME.dmg  (stable download URL)" 
+echo "To test: open $FINAL_DMG"

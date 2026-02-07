@@ -1,285 +1,136 @@
-# ShelfSpace 📁
+# ShelfSpace
 
-A lightweight macOS menu bar application that acts as a temporary file and image shelf, inspired by apps like Dropover. ShelfSpace provides a minimal, clean experience for managing temporary files, images, and screenshots.
+A native macOS menu bar clipboard manager built with Swift. Capture images, text, and files automatically — organized, searchable, always one click away.
 
-![ShelfSpace Demo](https://img.shields.io/badge/Platform-macOS%2013%2B-blue)
-![Swift](https://img.shields.io/badge/Swift-5.9-orange)
-![License](https://img.shields.io/badge/License-MIT-green)
+![macOS 13+](https://img.shields.io/badge/macOS-13.0%2B-8B5CF6)
+![Swift](https://img.shields.io/badge/Swift-5.9-F05138)
+![License](https://img.shields.io/badge/License-MIT-22C55E)
 
-## ✨ Features
+## Features
 
-### 🔹 Core Features
+**Clipboard Monitoring** — Auto-captures copied images, text, and files with smart content detection, duplicate filtering, and configurable polling interval.
 
-- **Menu Bar Integration**: Lives discreetly in your macOS menu bar
-- **Drag & Drop Support**: Accept files from Finder, browsers, and other apps
-- **Clipboard Monitoring**: Automatically captures screenshots and copied images
-- **Copy & Reuse**: One-click copy back to clipboard for sites that block drag & drop
-- **Drag Back Out**: Drag stored files to other applications
-- **Thumbnail Display**: Beautiful previews of images and file icons
-- **Temporary Storage**: Smart storage with automatic cleanup
-- **Pin Important Items**: Keep important files with pinning feature
+**Drag & Drop** — Drop files directly into the app (up to 200MB) or drag items out to any other application.
 
-### 🔸 Smart Features
+**Grid & List Views** — Switch between grid and list layouts with three density levels: compact, comfortable, and large.
 
-- **Screenshot Detection**: Automatically identifies and stores screenshots
-- **File Type Recognition**: Proper MIME type detection and icons
-- **Storage Limits**: Maintains last 50 items (pinned items exempt)
-- **Unique File Handling**: Prevents conflicts with duplicate filenames
-- **Native macOS Integration**: Uses SF Symbols and system colors
+**Content Filtering** — Five tabs (All, Pinned, Images, Text, Files) with live item counts and instant switching.
 
-### 🎨 User Interface
+**Pin Important Items** — Pin items to protect them from auto-cleanup. Persisted across app restarts with visual indicators.
 
-- **Clean & Minimal**: Designed for daily productivity workflows
-- **Dark/Light Mode**: Automatic adaptation to system appearance
-- **Hover Actions**: Copy, pin, and delete buttons on hover
-- **Visual Feedback**: Smooth animations and state indicators
-- **Responsive Layout**: Adapts to different content types
+**Rich Previews** — Image thumbnails, text content rendering, syntax-highlighted code previews, and file type icons with size display.
 
-## 🚀 Quick Start
+**Quick Actions** — Hover-activated copy, pin, and delete buttons with animated feedback.
 
-### Prerequisites
+**Persistent Storage** — Items saved automatically to Application Support. Survives app restarts with debounced auto-save.
 
-- macOS 13.0 (Ventura) or later
-- Xcode Command Line Tools
-- Swift 5.9+
+**Customizable Settings** — Polling interval, file size limits, text length limits, capture type toggles, density, thumbnail style (contain/cover), corner radius, and auto-clear retention.
 
-## 📦 Installation
+**Native Performance** — Built with Swift and AppKit. Minimal memory footprint with smart background processing.
 
-### Option 1: Download Release (Recommended)
+**Launch at Login** — Start automatically with macOS. Configure menu bar and Dock visibility.
 
-1. **Go to [Releases](https://github.com/immdipu/shelfspace/releases)**
-2. **Download** the latest `ShelfSpace-x.x.x.dmg` file
-3. **Open** the DMG and drag ShelfSpace to Applications
-4. **Launch** from Applications folder
-5. **Important**: On first launch, right-click and select "Open" (required for unsigned apps)
+**Bulk Management** — Clear all items, clear only unpinned, or set auto-clear retention by days.
 
-> **🔐 Security Note**: Since this app is not notarized, macOS will show a security warning. This is normal for open-source apps. Follow step 5 to bypass this safely.
+## Installation
 
-### Option 2: Build from Source
+### Download (Recommended)
 
-1. **Clone the repository**:
+1. Download **ShelfSpace.dmg** from the [latest release](https://github.com/immdipu/shelfspace/releases/latest)
+2. Open the DMG and drag ShelfSpace to Applications
+3. Launch from Applications
+4. On first launch, right-click and select "Open" (required for unsigned apps)
 
-   ```bash
-   git clone https://github.com/immdipu/shelfspace.git
-   cd shelfspace
-   ```
+### Build from Source
 
-2. **Quick build and run**:
+```bash
+git clone https://github.com/immdipu/shelfspace.git
+cd shelfspace
+make run
+```
 
-   ```bash
-   # Using Makefile (recommended)
-   make run
-   
-   # Or using build script directly
-   ./build.sh
-   open ShelfSpace.app
-   ```
+Or step by step:
 
-3. **Create complete release package**:
+```bash
+make icons    # Generate app icon from icon-1024.png
+make build    # Build ShelfSpace.app
+make release  # Full pipeline: icons + build + DMG + checksums
+```
 
-   ```bash
-   # Using Makefile (recommended)
-   make release
-   
-   # Or using release script directly
-   ./release.sh
-   ```
+Run `make help` to see all available commands.
 
-> **💡 Tip**: Use `make help` to see all available build commands and workflows.
+## Usage
 
-4. **Install to Applications** (optional):
-   ```bash
-   cp -r ShelfSpace.app /Applications/
-   ```
+1. **Launch** — ShelfSpace appears as a menu bar icon
+2. **Click** the icon to open the clipboard shelf
+3. **Copy** anything — images, text, files are captured automatically
+4. **Drop** files directly into the panel
+5. **Filter** by type using the tab bar (All, Pinned, Images, Text, Files)
+6. **Hover** over items for quick actions (copy, pin, delete)
+7. **Drag** items out of ShelfSpace into any app
+8. **Pin** important items to keep them safe from cleanup
 
-For detailed build instructions, see [BUILD.md](BUILD.md).
-
-### Development Setup
-
-For development in VS Code:
-
-1. **Open in VS Code**:
-
-   ```bash
-   code .
-   ```
-
-2. **Install Swift extension** for VS Code
-3. **Build and test**:
-   ```bash
-   swift build
-   swift run
-   ```
-
-## 🎯 How to Use
-
-### Getting Started
-
-1. Launch ShelfSpace - it will appear in your menu bar as a tray icon
-2. Click the menu bar icon to open the file shelf panel
-3. Start dropping files or copying images to populate your shelf
-
-### Adding Files
-
-- **Drag & Drop**: Drag files from Finder, browsers, or other apps into the drop zone
-- **Clipboard Monitoring**: Copy images or take screenshots - they'll automatically appear
-- **Multiple Sources**: Support for web images, local files, and screenshots
-
-### Managing Items
-
-- **Copy**: Click the copy button to copy items back to clipboard
-- **Pin**: Click the pin button to keep important items permanently
-- **Delete**: Click the trash button to remove individual items
-- **Clear All**: Use the "Clear All" button to remove all unpinned items
-- **Drag Out**: Drag items from the shelf to other applications
-
-### File Operations
-
-- **Thumbnails**: Automatic thumbnail generation for images
-- **File Info**: Display file name, size, and origin (Screenshot/Copied/Dropped)
-- **Smart Storage**: Temporary files stored in system temp directory
-- **Cleanup**: Automatic cleanup when items are removed or app quits
-
-## 🏗️ Architecture
-
-### Project Structure
+## Project Structure
 
 ```
 Sources/
-├── main.swift                  # Application entry point
-├── AppDelegate.swift           # Menu bar setup and lifecycle
-├── FileShelfViewController.swift # Main UI controller
-├── FileShelfItem.swift         # Data model for stored files
-├── FileShelfItemCell.swift     # Collection view cell for items
-├── DropZoneView.swift          # Drag & drop interface
-└── ClipboardMonitor.swift      # Clipboard monitoring service
+├── AppDelegate.swift              # Menu bar setup and app lifecycle
+├── Cells/                         # FileShelfItemCell (grid + list modes)
+├── Controllers/                   # FileShelfViewController + extensions
+├── Layout/                        # AdaptiveGridLayout (grid/list/density)
+├── Models/                        # FileShelfItem, ContentFilter
+├── Persistence/                   # PersistenceManager (auto-save)
+├── Protocols/                     # FileShelfItemCellDelegate
+├── Services/                      # ClipboardMonitor
+├── Settings/                      # Settings window (6 panes)
+├── Utilities/                     # Logger, AnimationHelper, TempDirectoryManager
+└── Views/                         # HeaderView, TabBar, ToolbarView, EmptyStateView
 ```
 
-### Key Components
+## Configuration
 
-- **AppDelegate**: Manages menu bar item and application lifecycle
-- **FileShelfViewController**: Main UI with collection view and drop zone
-- **ClipboardMonitor**: Background service for clipboard watching
-- **FileShelfItem**: Data model with file operations and metadata
-- **DropZoneView**: Custom view with drag & drop visual feedback
-- **FileShelfItemCell**: Individual item display with hover actions
+All settings are accessible from the gear icon in the app header:
 
-### Technology Stack
+| Category | Settings |
+|---|---|
+| **General** | Show in menu bar, show in Dock, launch at login |
+| **Clipboard** | Enable/disable monitoring, polling interval, max file size, max text length |
+| **Capture** | Toggle file/image/text capture independently, ignore duplicates |
+| **Storage** | Max items (up to 1000), auto-clear retention days |
+| **Appearance** | Thumbnail style (contain/cover), show file size, corner radius |
+| **About** | Version info, GitHub link, report issues |
 
-- **Swift 5.9**: Modern Swift with latest features
-- **AppKit**: Native macOS UI framework
-- **Core Animation**: Smooth animations and visual effects
-- **Foundation**: File operations and system integration
-- **UniformTypeIdentifiers**: MIME type detection
+## Tech Stack
 
-## 🔧 Configuration
+- **Swift 5.9** + **AppKit** — Native macOS, no SwiftUI or Electron
+- **Core Animation** — Smooth animations and visual effects
+- **Swift Package Manager** — Build system
+- **NSPopover** — 420x580px panel from the menu bar
 
-### Storage Behavior
+## Privacy
 
-- **Temporary Storage**: Files stored in `~/Library/Caches/FileShelf/`
-- **Max Items**: 50 items (configurable in source)
-- **Pinned Items**: Exempt from automatic cleanup
-- **File Cleanup**: Automatic cleanup on app termination
+- All data stored locally on your Mac (`~/Library/Application Support/ShelfSpace/`)
+- No network requests, no analytics, no telemetry
+- Temporary files cleaned up automatically
 
-### Customization Options
+## Version Management
 
-- Modify `maxItems` in `FileShelfViewController` to change storage limit
-- Adjust polling interval in `ClipboardMonitor` for clipboard checking
-- Customize UI colors and animations in respective view files
+```bash
+make version       # Show current version
+make bump-patch    # 1.0.0 → 1.0.1
+make bump-minor    # 1.0.0 → 1.1.0
+make bump-major    # 1.0.0 → 2.0.0
+make github-release  # Tag + push + create GitHub release with DMG
+```
 
-## 🛠️ Development
+## Contributing
 
-### Building for Distribution
+Contributions welcome. Fork the repo, create a feature branch, and submit a pull request.
 
-1. **Create release build**:
+## License
 
-   ```bash
-   swift build -c release
-   ```
-
-2. **Code signing** (for distribution):
-
-   ```bash
-   codesign --force --deep --sign "Developer ID Application: Your Name" FileShelf.app
-   ```
-
-3. **Create DMG** (optional):
-   ```bash
-   hdiutil create -volname "FileShelf" -srcfolder FileShelf.app -ov -format UDZO FileShelf.dmg
-   ```
-
-### Testing
-
-- **Manual Testing**: Build and run the app to test all features
-- **File Types**: Test with various file types (images, documents, etc.)
-- **Drag & Drop**: Test drag operations from different sources
-- **Clipboard**: Test screenshot and image copying scenarios
-
-## 🎨 UI/UX Design
-
-### Design Principles
-
-- **Minimal & Clean**: Focused on productivity without clutter
-- **Native Feel**: Uses macOS design patterns and components
-- **Discoverable**: Clear visual cues for all interactions
-- **Responsive**: Immediate feedback for all user actions
-
-### Visual Elements
-
-- **SF Symbols**: System icons for consistency
-- **System Colors**: Automatic dark/light mode support
-- **Rounded Corners**: Modern macOS aesthetic
-- **Subtle Animations**: Enhance usability without distraction
-
-## 🔒 Privacy & Security
-
-- **Local Storage**: All files stored locally on your Mac
-- **No Network**: No data transmitted over the network
-- **Temporary Files**: Automatic cleanup of temporary storage
-- **System Integration**: Uses standard macOS APIs and patterns
-
-## 🐛 Troubleshooting
-
-### Common Issues
-
-**App doesn't appear in menu bar**:
-
-- Check if app is running: `ps aux | grep FileShelf`
-- Try restarting the app
-- Check macOS permissions for accessibility
-
-**Clipboard monitoring not working**:
-
-- Grant accessibility permissions in System Preferences
-- Check if other clipboard managers are interfering
-
-**Drag & drop not working**:
-
-- Ensure source application supports file dragging
-- Try dragging to the drop zone area specifically
-
-**Build errors**:
-
-- Ensure Xcode Command Line Tools are installed: `xcode-select --install`
-- Check Swift version: `swift --version`
-- Clean build: `rm -rf .build`
-
-## 📝 License
-
-MIT License - feel free to modify and distribute.
-
-## 🤝 Contributing
-
-Contributions welcome! Please feel free to submit pull requests or open issues for bugs and feature requests.
-
-### Development Workflow
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
+MIT
 
 ---
 
-**FileShelf** - Making file management effortless on macOS 🚀
+Built by [Dipu](https://github.com/immdipu)

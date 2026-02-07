@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(wc:*)",
-      "Bash(swift build:*)"
+      "Bash(swift build:*)",
+      "Bash(./create-dmg.sh:*)"
     ]
   }
 }
