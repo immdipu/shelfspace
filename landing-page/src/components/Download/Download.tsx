@@ -1,69 +1,85 @@
 import { motion } from 'framer-motion'
 import { Download, Apple, Github } from 'lucide-react'
 
+const ease = [0.22, 1, 0.36, 1]
+
 const DownloadSection = () => {
   return (
-    <section id="download" className="py-24 px-4">
-      <div className="max-w-4xl mx-auto">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-100px" }}
-          transition={{ duration: 0.6 }}
-          className="glass rounded-3xl p-8 md:p-12 text-center relative overflow-hidden"
-        >
-          {/* Background gradient */}
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-accent/10 pointer-events-none" />
+    <section id="download" className="relative py-32 px-4">
+      <div className="section-divider max-w-2xl mx-auto mb-32" />
 
-          {/* Content */}
+      <div className="max-w-3xl mx-auto relative">
+        {/* Ambient glow */}
+        <div className="absolute -inset-32 bg-violet/[0.03] rounded-full blur-[100px] pointer-events-none" />
+
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-80px" }}
+          transition={{ duration: 0.8, ease }}
+          className="relative glass-card rounded-3xl p-10 md:p-16 text-center overflow-hidden"
+        >
+          {/* Decorative grid */}
+          <div
+            className="absolute inset-0 pointer-events-none opacity-[0.02]"
+            style={{
+              backgroundImage: `radial-gradient(circle, rgba(139,92,246,0.5) 1px, transparent 1px)`,
+              backgroundSize: '24px 24px',
+            }}
+          />
+
           <div className="relative z-10">
+            {/* Icon */}
             <motion.div
-              initial={{ scale: 0 }}
-              whileInView={{ scale: 1 }}
+              initial={{ scale: 0, rotate: -20 }}
+              whileInView={{ scale: 1, rotate: 0 }}
               viewport={{ once: true }}
-              transition={{ type: "spring", stiffness: 200, damping: 15 }}
-              className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg shadow-primary/30"
+              transition={{ type: "spring", stiffness: 200, damping: 15, delay: 0.2 }}
+              className="w-16 h-16 mx-auto mb-8 rounded-2xl bg-gradient-to-br from-violet to-violet-600 flex items-center justify-center shadow-lg shadow-violet/30 animate-glow"
             >
-              <Download className="w-10 h-10 text-white" />
+              <Download className="w-7 h-7 text-white" />
             </motion.div>
 
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Ready to Get Started?
+            <h2 className="font-display text-3xl md:text-5xl tracking-tight mb-4">
+              <span className="text-ash-50">Ready to try</span>{' '}
+              <span className="gradient-text-violet italic">ShelfSpace</span>
+              <span className="text-ash-50">?</span>
             </h2>
-            <p className="text-lg text-text-secondary mb-8 max-w-xl mx-auto">
-              Download ShelfSpace for free and transform the way you manage temporary files on macOS.
+            <p className="font-body text-base md:text-lg text-ash-400 mb-10 max-w-md mx-auto leading-relaxed">
+              Free, open source, and built for macOS.
+              Download and start managing your clipboard in seconds.
             </p>
 
-            {/* Download button */}
+            {/* CTA */}
             <motion.a
               href="https://github.com/immdipu/shelfspace/releases"
               target="_blank"
               rel="noopener noreferrer"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="inline-flex items-center gap-3 bg-gradient-to-r from-primary to-primary-light text-white font-semibold py-4 px-8 rounded-full shadow-lg shadow-primary/30 hover:shadow-xl hover:shadow-primary/40 transition-shadow duration-300"
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
+              className="btn-violet text-base py-4 px-10"
             >
-              <Apple className="w-6 h-6" />
+              <Apple className="w-5 h-5" />
               Download for macOS
             </motion.a>
 
-            {/* Version info */}
-            <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-4 text-sm text-text-secondary">
+            {/* Info badges */}
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-sm font-body text-ash-500">
               <span className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-green-400" />
+                <span className="w-1.5 h-1.5 rounded-full bg-green-400 glow-dot" style={{ boxShadow: '0 0 6px rgba(74,222,128,0.5)' }} />
                 macOS 13.0+
               </span>
-              <span className="hidden sm:block">|</span>
+              <span className="text-ash-700">|</span>
               <span>Free & Open Source</span>
-              <span className="hidden sm:block">|</span>
+              <span className="text-ash-700">|</span>
               <a
                 href="https://github.com/immdipu/shelfspace"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 hover:text-primary transition-colors"
+                className="flex items-center gap-1.5 text-ash-400 hover:text-violet transition-colors"
               >
-                <Github className="w-4 h-4" />
-                View Source
+                <Github className="w-3.5 h-3.5" />
+                Source Code
               </a>
             </div>
           </div>
