@@ -8,10 +8,7 @@ protocol HeaderViewDelegate: AnyObject {
 class HeaderView: NSView {
     weak var delegate: HeaderViewDelegate?
 
-    private let iconBadge = NSView()
-    private let iconImageView = NSImageView()
     private let titleLabel = NSTextField()
-    private let countPill = NSTextField()
     private let settingsButton = HeaderButton(symbolName: "gearshape", label: "Settings")
     private let closeButton = HeaderButton(symbolName: "xmark", label: "Close")
     private let bottomBorder = NSView()
@@ -30,30 +27,10 @@ class HeaderView: NSView {
         wantsLayer = true
         layer?.backgroundColor = AppColors.headerBackground.cgColor
 
-        setupIconBadge()
         setupTitle()
-        setupCountPill()
         setupButtons()
         setupBottomBorder()
         setupConstraints()
-    }
-
-    private func setupIconBadge() {
-        // 24x24 rounded-md container with accent bg
-        iconBadge.wantsLayer = true
-        iconBadge.layer?.backgroundColor = AppColors.accentBadgeBg.cgColor
-        iconBadge.layer?.cornerRadius = DesignSystem.CornerRadius.sm
-        iconBadge.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(iconBadge)
-
-        // Clipboard icon 13px
-        if let icon = NSImage(systemSymbolName: "clipboard", accessibilityDescription: "ShelfSpace") {
-            iconImageView.image = icon
-        }
-        iconImageView.contentTintColor = AppColors.accent
-        iconImageView.imageScaling = .scaleProportionallyUpOrDown
-        iconImageView.translatesAutoresizingMaskIntoConstraints = false
-        iconBadge.addSubview(iconImageView)
     }
 
     private func setupTitle() {
@@ -65,20 +42,6 @@ class HeaderView: NSView {
         titleLabel.backgroundColor = .clear
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
         addSubview(titleLabel)
-    }
-
-    private func setupCountPill() {
-        countPill.stringValue = "0"
-        countPill.font = DesignSystem.Typography.small
-        countPill.textColor = AppColors.textTertiary
-        countPill.alignment = .center
-        countPill.isEditable = false
-        countPill.isBordered = false
-        countPill.wantsLayer = true
-        countPill.layer?.backgroundColor = AppColors.backgroundTertiary.cgColor
-        countPill.layer?.cornerRadius = 8
-        countPill.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(countPill)
     }
 
     private func setupButtons() {
@@ -102,27 +65,9 @@ class HeaderView: NSView {
 
     private func setupConstraints() {
         NSLayoutConstraint.activate([
-            // Icon badge: 24x24, centered vertically, leading 16px
-            iconBadge.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 16),
-            iconBadge.centerYAnchor.constraint(equalTo: centerYAnchor),
-            iconBadge.widthAnchor.constraint(equalToConstant: 24),
-            iconBadge.heightAnchor.constraint(equalToConstant: 24),
-
-            // Icon inside badge: 13px centered
-            iconImageView.centerXAnchor.constraint(equalTo: iconBadge.centerXAnchor),
-            iconImageView.centerYAnchor.constraint(equalTo: iconBadge.centerYAnchor),
-            iconImageView.widthAnchor.constraint(equalToConstant: 13),
-            iconImageView.heightAnchor.constraint(equalToConstant: 13),
-
-            // Title: gap-2.5 (10px) from icon badge
-            titleLabel.leadingAnchor.constraint(equalTo: iconBadge.trailingAnchor, constant: 10),
+            // Title: leading 16px, centered vertically
+            titleLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 16),
             titleLabel.centerYAnchor.constraint(equalTo: centerYAnchor),
-
-            // Count pill: gap-2.5 (10px) from title
-            countPill.leadingAnchor.constraint(equalTo: titleLabel.trailingAnchor, constant: 10),
-            countPill.centerYAnchor.constraint(equalTo: centerYAnchor),
-            countPill.heightAnchor.constraint(equalToConstant: 18),
-            countPill.widthAnchor.constraint(greaterThanOrEqualToConstant: 24),
 
             // Close button (rightmost): 26x26
             closeButton.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -16),
@@ -157,15 +102,15 @@ class HeaderView: NSView {
     // MARK: - Public
 
     func updateItemCount(_ count: Int) {
-        countPill.stringValue = "\(count)"
+        // No-op: count display removed
     }
 
     func updateStatus(itemCount: Int, filterName: String? = nil) {
-        updateItemCount(itemCount)
+        // No-op: count display removed
     }
 
     func setStatus(_ status: String) {
-        // No-op, header only shows count pill now
+        // No-op
     }
 }
 

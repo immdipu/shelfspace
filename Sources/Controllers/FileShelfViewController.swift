@@ -7,7 +7,6 @@ class FileShelfViewController: NSViewController {
     var collectionView: NSCollectionView!
     var headerView: HeaderView!
     var tabBar: TabBar!
-    var toolbarView: ToolbarView!
     var emptyStateView: EmptyStateView!
     var dropZoneOverlay: DropZoneView!
 
@@ -99,7 +98,6 @@ class FileShelfViewController: NSViewController {
 
         setupHeader()
         setupTabBar()
-        setupToolbar()
         setupEmptyState()
         setupDropZoneOverlay()
         setupCollectionView()
@@ -118,13 +116,6 @@ class FileShelfViewController: NSViewController {
         tabBar.delegate = self
         tabBar.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(tabBar)
-    }
-
-    private func setupToolbar() {
-        toolbarView = ToolbarView()
-        toolbarView.delegate = self
-        toolbarView.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(toolbarView)
     }
 
     private func setupEmptyState() {
@@ -202,24 +193,20 @@ class FileShelfViewController: NSViewController {
             tabBar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             tabBar.heightAnchor.constraint(equalToConstant: DesignSystem.Header.tabBarHeight),
 
-            toolbarView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            toolbarView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            toolbarView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-
             scrollView.topAnchor.constraint(equalTo: tabBar.bottomAnchor),
             scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            scrollView.bottomAnchor.constraint(equalTo: toolbarView.topAnchor),
+            scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
 
             emptyStateView.topAnchor.constraint(equalTo: tabBar.bottomAnchor),
             emptyStateView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             emptyStateView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            emptyStateView.bottomAnchor.constraint(equalTo: toolbarView.topAnchor),
+            emptyStateView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
 
             dropZoneOverlay.topAnchor.constraint(equalTo: tabBar.bottomAnchor),
             dropZoneOverlay.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: DesignSystem.Spacing.sm),
             dropZoneOverlay.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -DesignSystem.Spacing.sm),
-            dropZoneOverlay.bottomAnchor.constraint(equalTo: toolbarView.topAnchor, constant: -DesignSystem.Spacing.sm),
+            dropZoneOverlay.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -DesignSystem.Spacing.sm),
         ])
 
         view.layoutSubtreeIfNeeded()
@@ -275,7 +262,6 @@ class FileShelfViewController: NSViewController {
 
             self.updateStatusLabel()
             self.updateEmptyStateVisibility()
-            self.updateToolbarVisibility()
             self.updateTabBadges()
         }
     }
@@ -295,15 +281,6 @@ class FileShelfViewController: NSViewController {
             emptyStateView.startIdleAnimation()
         } else {
             emptyStateView.stopIdleAnimation()
-        }
-    }
-
-    private func updateToolbarVisibility() {
-        if items.isEmpty {
-            toolbarView.hide()
-        } else {
-            toolbarView.show()
-            toolbarView.updateItemCount(items.count)
         }
     }
 
@@ -377,7 +354,6 @@ class FileShelfViewController: NSViewController {
         PersistenceManager.shared.saveItemsDebounced(items)
         updateStatusLabel()
         updateEmptyStateVisibility()
-        updateToolbarVisibility()
         updateTabBadges()
     }
 
@@ -467,25 +443,6 @@ extension FileShelfViewController: TabBarDelegate {
         GridDensityManager.shared.currentViewMode = viewMode
     }
 }
-
-// MARK: - ToolbarViewDelegate
-
-extension FileShelfViewController: ToolbarViewDelegate {
-    func toolbarViewDidTapClearAll(_ toolbarView: ToolbarView) {
-        clearAllItems()
-    }
-
-    func toolbarViewDidTapSelectAll(_ toolbarView: ToolbarView) {
-        let allIndexPaths = Set((0..<filteredItems.count).map { IndexPath(item: $0, section: 0) })
-        collectionView.selectionIndexPaths = allIndexPaths
-    }
-
-    func toolbarViewDidTapExport(_ toolbarView: ToolbarView) {
-        // TODO: Implement export
-    }
-}
-
-
 
 
 
