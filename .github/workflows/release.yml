@@ -81,12 +81,25 @@ jobs:
             1. Download `ShelfSpace-${{ steps.version.outputs.version }}.dmg` below
             2. Open the DMG file
             3. Drag ShelfSpace.app to your Applications folder
-            4. Launch from Applications or Launchpad
+            4. **Important**: Follow the security steps below before launching
 
-            ### 🔐 Security Note
-            Since this app is not notarized, you may need to:
-            1. Right-click the app and select "Open"
-            2. Grant necessary permissions when prompted
+            ### 🔐 Security & First Launch
+            ⚠️ **If you see "Apple could not verify ShelfSpace is free of malware":**
+            
+            This is normal for open-source apps. ShelfSpace is safe but not notarized with Apple.
+            
+            **To open the app:**
+            1. **Right-click** ShelfSpace.app in Applications folder
+            2. Select **"Open"** from the context menu  
+            3. Click **"Open"** again in the security dialog
+            4. The app will now run and be trusted permanently
+            
+            **Alternative method:**
+            1. Go to **System Settings** → **Privacy & Security**
+            2. Scroll down to find **"ShelfSpace was blocked..."**
+            3. Click **"Open Anyway"**
+            
+            You only need to do this once - the app will launch normally afterward.
 
             ### 📋 System Requirements
             - macOS 13.0 (Ventura) or later

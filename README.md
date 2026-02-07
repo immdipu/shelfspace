@@ -36,14 +36,36 @@ A native macOS menu bar clipboard manager built with Swift. Capture images, text
 
 ### Download (Recommended)
 
+### Download (Recommended)
+
 1. Download **ShelfSpace.dmg** from the [latest release](https://github.com/immdipu/shelfspace/releases/latest)
 2. Open the DMG and drag ShelfSpace to Applications
-3. Launch from Applications
-4. **First launch**: If macOS shows a warning, right-click the app and select **"Open"**, then click "Open" in the dialog. This is only needed once — macOS remembers your choice after that.
-5. If you see "damaged and can't be opened", run this in Terminal and then open the app:
-   ```bash
-   xattr -cr /Applications/ShelfSpace.app
-   ```
+3. **Important**: Don't double-click to launch yet! Follow the security steps first.
+
+### 🔐 First Launch (Required for unsigned apps)
+
+⚠️ **If you see "Apple could not verify ShelfSpace is free of malware":**
+
+This is normal for open-source apps. ShelfSpace is safe but not notarized with Apple.
+
+**Method 1 (Recommended):**
+1. **Right-click** ShelfSpace.app in Applications folder
+2. Select **"Open"** from the context menu  
+3. Click **"Open"** again in the security dialog
+4. The app will now run and be trusted permanently
+
+**Method 2:**
+1. Go to **System Settings** → **Privacy & Security**
+2. Scroll down to find **"ShelfSpace was blocked..."**
+3. Click **"Open Anyway"**
+
+**If you see "damaged and can't be opened":**
+```bash
+xattr -cr /Applications/ShelfSpace.app
+```
+Then try Method 1 above.
+
+You only need to do this once - the app will launch normally afterward.
 
 ### Build from Source
 
