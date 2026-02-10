@@ -2,11 +2,21 @@ import { motion } from 'framer-motion'
 
 const ease = [0.22, 1, 0.36, 1]
 
-const showcaseItems = [
+const appViews = [
   {
-    label: 'Grid View',
-    description: '2-column grid with rich image previews, text rendering, and file type icons.',
+    label: 'All Items',
+    description: 'Grid view with all clipboard items — images, text, and files at a glance.',
     image: '/images/showcase/image_all_tab.png',
+  },
+  {
+    label: 'Images Tab',
+    description: 'Filter to see only captured images with rich, full-size previews.',
+    image: '/images/showcase/image_images_tab.png',
+  },
+  {
+    label: 'Text Tab',
+    description: 'Quickly find copied text snippets with inline content previews.',
+    image: '/images/showcase/image_text_tab.png',
   },
   {
     label: 'List View',
@@ -14,11 +24,53 @@ const showcaseItems = [
     image: '/images/showcase/image_list_view.png',
   },
   {
-    label: 'Settings Panel',
-    description: 'Tune clipboard monitoring, capture types, storage limits, and appearance.',
+    label: 'Pinned Items',
+    description: 'Pin important clipboard items so they never get pushed out.',
+    image: '/images/showcase/image_pinned.png',
+  },
+]
+
+const settingsViews = [
+  {
+    label: 'General',
+    description: 'System preferences — menu bar icon, launch at login, and dock visibility.',
+    image: '/images/showcase/settings_general.png',
+  },
+  {
+    label: 'Appearance',
+    description: 'Grid density, thumbnail style, card corners, and visual tweaks.',
+    image: '/images/showcase/settings_appearance.png',
+  },
+  {
+    label: 'Clipboard',
+    description: 'Monitoring, capture types, polling interval, and storage limits.',
     image: '/images/showcase/settings_clipboard.png',
   },
 ]
+
+const ShowcaseCard = ({ item, index }: { item: { label: string; description: string; image: string }; index: number }) => (
+  <motion.div
+    initial={{ opacity: 0, y: 24 }}
+    whileInView={{ opacity: 1, y: 0 }}
+    viewport={{ once: true, margin: "-60px" }}
+    transition={{ delay: index * 0.1, duration: 0.6, ease }}
+    className="group"
+  >
+    <div className="glass-card rounded-2xl overflow-hidden mb-4 transition-all duration-500">
+      <div className="aspect-[4/3] bg-void-200 relative overflow-hidden">
+        <img
+          src={item.image}
+          alt={item.label}
+          className="w-full h-full object-cover object-top"
+          loading="lazy"
+        />
+        <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-void-200 to-transparent pointer-events-none" />
+      </div>
+    </div>
+    <h3 className="font-body text-base font-semibold text-ash-50 mb-1">{item.label}</h3>
+    <p className="font-body text-sm text-ash-500">{item.description}</p>
+  </motion.div>
+)
 
 const Showcase = () => {
   return (
@@ -46,33 +98,38 @@ const Showcase = () => {
           </p>
         </motion.div>
 
-        {/* Showcase cards */}
+        {/* App views — top row of 3, bottom row of 2 centered */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          {showcaseItems.map((item, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, y: 24 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-60px" }}
-              transition={{ delay: i * 0.1, duration: 0.6, ease }}
-              className="group"
-            >
-              {/* Visual area */}
-              <div className="glass-card rounded-2xl overflow-hidden mb-4 transition-all duration-500">
-                <div className="aspect-[4/3] bg-void-200 relative overflow-hidden flex items-center justify-center">
-                  <img
-                    src={item.image}
-                    alt={item.label}
-                    className="w-full h-full object-cover object-top"
-                    loading="lazy"
-                  />
-                  {/* Fade gradient */}
-                  <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-void-200 to-transparent pointer-events-none" />
-                </div>
-              </div>
-              <h3 className="font-body text-base font-semibold text-ash-50 mb-1">{item.label}</h3>
-              <p className="font-body text-sm text-ash-500">{item.description}</p>
-            </motion.div>
+          {appViews.slice(0, 3).map((item, i) => (
+            <ShowcaseCard key={item.label} item={item} index={i} />
+          ))}
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-5 max-w-[calc(66.666%+0.625rem)] mx-auto">
+          {appViews.slice(3).map((item, i) => (
+            <ShowcaseCard key={item.label} item={item} index={i} />
+          ))}
+        </div>
+
+        {/* Settings sub-header */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-60px" }}
+          transition={{ duration: 0.6, ease }}
+          className="text-center mt-20 mb-10"
+        >
+          <span className="inline-block font-mono text-xs text-ash-500 tracking-widest uppercase mb-3">
+            Settings
+          </span>
+          <h3 className="font-display text-2xl md:text-3xl tracking-tight text-ash-50">
+            Fine-tuned <span className="text-ash-400 italic">control.</span>
+          </h3>
+        </motion.div>
+
+        {/* Settings views — 3 columns */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          {settingsViews.map((item, i) => (
+            <ShowcaseCard key={item.label} item={item} index={i} />
           ))}
         </div>
 
