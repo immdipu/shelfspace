@@ -153,16 +153,13 @@ const TiltCard = ({
             }
           />
 
-          {/* Cursor glow fill */}
           <motion.div
             className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-10 pointer-events-none"
             style={{ background: glowFill }}
           />
 
-          {/* Card body */}
           <div className="glass-card rounded-2xl overflow-hidden transition-shadow duration-500 group-hover:shadow-[0_25px_60px_-12px_rgba(139,92,246,0.25)]">
             <div className="aspect-[4/3] bg-void-200 relative overflow-hidden">
-              {/* Parallax image */}
               <motion.img
                 src={item.image}
                 alt={item.label}
@@ -177,7 +174,6 @@ const TiltCard = ({
                 style={{ background: specular }}
               />
 
-              {/* Bottom fade */}
               <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-void-200 to-transparent pointer-events-none" />
             </div>
           </div>
@@ -269,7 +265,6 @@ const Showcase = () => {
       {/* Ambient floating orbs */}
       <FloatingOrbs />
 
-      {/* Section-wide cursor spotlight */}
       <motion.div
         className="absolute inset-0 pointer-events-none z-0"
         style={{ background: spotlightBg }}
@@ -278,7 +273,6 @@ const Showcase = () => {
       <div className="section-divider max-w-2xl mx-auto mb-32" />
 
       <div className="max-w-6xl mx-auto relative z-10">
-        {/* Section header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -299,21 +293,18 @@ const Showcase = () => {
           </p>
         </motion.div>
 
-        {/* App views — row of 3 */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           {appViews.slice(0, 3).map((item, i) => (
             <TiltCard key={item.label} item={item} globalIndex={i} />
           ))}
         </div>
 
-        {/* App views — row of 2, centered */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-5 max-w-[calc(66.666%+0.625rem)] mx-auto">
           {appViews.slice(3).map((item, i) => (
             <TiltCard key={item.label} item={item} globalIndex={i} />
           ))}
         </div>
 
-        {/* Settings sub-header */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -328,15 +319,12 @@ const Showcase = () => {
             Fine-tuned <span className="text-ash-400 italic">control.</span>
           </h3>
         </motion.div>
-
-        {/* Settings views — 3 columns */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           {settingsViews.map((item, i) => (
             <TiltCard key={item.label} item={item} globalIndex={i} />
           ))}
         </div>
 
-        {/* Stats bar */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
