@@ -13,13 +13,22 @@ extension FileShelfItemCell {
         let displayName = Self.makeDisplayName(for: item)
         let typeIconName = item.itemType.iconName
 
-        // Set type icon for both modes
-        if let typeIcon = NSImage(systemSymbolName: typeIconName, accessibilityDescription: item.itemType.displayName) {
+        // Set type icon for both modes; detected content (link/color/email)
+        // overrides the generic type icon
+        let effectiveIconName = item.detectedContent.iconName ?? typeIconName
+        if let typeIcon = NSImage(systemSymbolName: effectiveIconName, accessibilityDescription: item.itemType.displayName) {
             let config12 = NSImage.SymbolConfiguration(pointSize: 12, weight: .regular)
             let config16 = NSImage.SymbolConfiguration(pointSize: 16, weight: .regular)
             gridTypeIcon.image = typeIcon.withSymbolConfiguration(config12)
             listIconView.image = typeIcon.withSymbolConfiguration(config16)
         }
+
+        // Source app icon
+        let sourceIcon = item.sourceAppIcon
+        gridSourceAppIcon.image = sourceIcon
+        gridSourceAppIcon.isHidden = (sourceIcon == nil)
+        listSourceAppIcon.image = sourceIcon
+        listSourceAppIcon.isHidden = (sourceIcon == nil)
 
         // Grid mode data
         gridNameLabel.stringValue = displayName
@@ -125,7 +134,12 @@ extension FileShelfItemCell {
 
         let trimmedText = item.textContent?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
 
-        if !trimmedText.isEmpty {
+        if case .color(let color, let hex) = item.detectedContent {
+            // COLOR CLIPS: show a swatch instead of the raw hex text
+            thumbnailImageView.image = createColorPreviewImage(color: color, hex: hex)
+            thumbnailImageView.imageScaling = .scaleAxesIndependently
+            thumbnailImageView.isHidden = false
+        } else if !trimmedText.isEmpty {
             // TEXT ITEMS: Render text as an image and show via thumbnailImageView
             let textImage = createTextPreviewImage(text: trimmedText)
             thumbnailImageView.image = textImage
@@ -164,7 +178,8 @@ extension FileShelfItemCell {
                 }
             }
         } else {
-            // FILE ITEMS: Render icon + size as an image
+            // FILE ITEMS: icon + size placeholder, upgraded to a real
+            // QuickLook thumbnail (PDF page, video frame, …) when available
             let iconImage = createFileIconPreviewImage(
                 iconName: item.itemType.iconName,
                 fileSize: item.formattedFileSize
@@ -172,6 +187,7 @@ extension FileShelfItemCell {
             thumbnailImageView.image = iconImage
             thumbnailImageView.imageScaling = .scaleAxesIndependently
             thumbnailImageView.isHidden = false
+            loadQuickLookGridThumbnail(for: item)
         }
     }
 
@@ -202,6 +218,19 @@ extension FileShelfItemCell {
         listIconView.isHidden = false
         listIconImageView.isHidden = true
         listIconImageView.image = nil
+        listIconContainer.layer?.backgroundColor = AppColors.backgroundTertiary.cgColor
+
+        if case .color(let color, _) = item.detectedContent {
+            // Color clips get a swatch instead of an icon
+            listIconContainer.layer?.backgroundColor = color.cgColor
+            listIconView.isHidden = true
+            return
+        }
+
+        if !item.isImage, item.fileURL != nil, !item.isText {
+            loadQuickLookListThumbnail(for: item)
+            return
+        }
 
         if item.isImage, let fileURL = item.fileURL {
             let token = UUID()
@@ -389,12 +418,14 @@ extension FileShelfItemCell {
                     listContainer.layer?.backgroundColor = AppColors.listHover.cgColor
                     listActionsContainer.animator().alphaValue = 1
                     listPinIndicator.isHidden = true
+                    listSourceAppIcon.isHidden = true
                 } else {
                     listContainer.layer?.backgroundColor = NSColor.clear.cgColor
                     listActionsContainer.animator().alphaValue = 0
                     if fileItem?.isPinned == true {
                         listPinIndicator.isHidden = false
                     }
+                    listSourceAppIcon.isHidden = (listSourceAppIcon.image == nil)
                 }
             }
         }

@@ -17,6 +17,7 @@ class PreviewOverlayView: NSView {
     private let headerBar = NSView()
     private let backButton = HeaderButton(symbolName: "chevron.left", label: "Back")
     private let nameLabel = NSTextField()
+    private let sourceAppIconView = NSImageView()
     private let typeBadge = NSTextField()
     private let headerBorder = NSView()
 
@@ -26,10 +27,13 @@ class PreviewOverlayView: NSView {
     private let textScrollView = NSScrollView()
     private let textView = NSTextView()
     private var fullImageLoadToken = UUID()
+    private var detectedURL: URL?
 
     // Footer
     private let footerBar = NSView()
     private let footerBorder = NSView()
+    private let footerStack = NSStackView()
+    private let openLinkButton = GridActionButton(symbolName: "safari", label: "Open Link")
     private let copyButton = GridActionButton(symbolName: "doc.on.doc", label: "Copy")
     private let pinButton = GridActionButton(symbolName: "pin", label: "Pin")
     private let deleteButton = GridActionButton(symbolName: "trash", label: "Delete", isDanger: true)
@@ -95,6 +99,11 @@ class PreviewOverlayView: NSView {
         typeBadge.translatesAutoresizingMaskIntoConstraints = false
         headerBar.addSubview(typeBadge)
 
+        sourceAppIconView.imageScaling = .scaleProportionallyUpOrDown
+        sourceAppIconView.isHidden = true
+        sourceAppIconView.translatesAutoresizingMaskIntoConstraints = false
+        headerBar.addSubview(sourceAppIconView)
+
         headerBorder.wantsLayer = true
         headerBorder.layer?.backgroundColor = AppColors.backgroundTertiary.cgColor
         headerBorder.translatesAutoresizingMaskIntoConstraints = false
@@ -151,10 +160,18 @@ class PreviewOverlayView: NSView {
         footerBorder.translatesAutoresizingMaskIntoConstraints = false
         footerBar.addSubview(footerBorder)
 
-        for button in [copyButton, pinButton, deleteButton] {
+        footerStack.orientation = .horizontal
+        footerStack.spacing = DesignSystem.Spacing.sm
+        footerStack.translatesAutoresizingMaskIntoConstraints = false
+        footerBar.addSubview(footerStack)
+
+        for button in [openLinkButton, copyButton, pinButton, deleteButton] {
             button.translatesAutoresizingMaskIntoConstraints = false
-            footerBar.addSubview(button)
+            footerStack.addArrangedSubview(button)
         }
+        openLinkButton.isHidden = true
+        openLinkButton.target = self
+        openLinkButton.action = #selector(openLinkClicked)
         copyButton.target = self
         copyButton.action = #selector(copyClicked)
         pinButton.target = self
@@ -178,7 +195,12 @@ class PreviewOverlayView: NSView {
 
             nameLabel.leadingAnchor.constraint(equalTo: backButton.trailingAnchor, constant: 8),
             nameLabel.centerYAnchor.constraint(equalTo: headerBar.centerYAnchor),
-            nameLabel.trailingAnchor.constraint(lessThanOrEqualTo: typeBadge.leadingAnchor, constant: -8),
+            nameLabel.trailingAnchor.constraint(lessThanOrEqualTo: sourceAppIconView.leadingAnchor, constant: -8),
+
+            sourceAppIconView.trailingAnchor.constraint(equalTo: typeBadge.leadingAnchor, constant: -8),
+            sourceAppIconView.centerYAnchor.constraint(equalTo: headerBar.centerYAnchor),
+            sourceAppIconView.widthAnchor.constraint(equalToConstant: 16),
+            sourceAppIconView.heightAnchor.constraint(equalToConstant: 16),
 
             typeBadge.trailingAnchor.constraint(equalTo: headerBar.trailingAnchor, constant: -16),
             typeBadge.centerYAnchor.constraint(equalTo: headerBar.centerYAnchor),
@@ -215,16 +237,14 @@ class PreviewOverlayView: NSView {
             footerBorder.topAnchor.constraint(equalTo: footerBar.topAnchor),
             footerBorder.heightAnchor.constraint(equalToConstant: 1),
 
-            pinButton.centerXAnchor.constraint(equalTo: footerBar.centerXAnchor),
-            pinButton.centerYAnchor.constraint(equalTo: footerBar.centerYAnchor),
-            pinButton.widthAnchor.constraint(equalToConstant: buttonSize),
-            pinButton.heightAnchor.constraint(equalToConstant: buttonSize),
-            copyButton.trailingAnchor.constraint(equalTo: pinButton.leadingAnchor, constant: -DesignSystem.Spacing.sm),
-            copyButton.centerYAnchor.constraint(equalTo: footerBar.centerYAnchor),
+            footerStack.centerXAnchor.constraint(equalTo: footerBar.centerXAnchor),
+            footerStack.centerYAnchor.constraint(equalTo: footerBar.centerYAnchor),
+            openLinkButton.widthAnchor.constraint(equalToConstant: buttonSize),
+            openLinkButton.heightAnchor.constraint(equalToConstant: buttonSize),
             copyButton.widthAnchor.constraint(equalToConstant: buttonSize),
             copyButton.heightAnchor.constraint(equalToConstant: buttonSize),
-            deleteButton.leadingAnchor.constraint(equalTo: pinButton.trailingAnchor, constant: DesignSystem.Spacing.sm),
-            deleteButton.centerYAnchor.constraint(equalTo: footerBar.centerYAnchor),
+            pinButton.widthAnchor.constraint(equalToConstant: buttonSize),
+            pinButton.heightAnchor.constraint(equalToConstant: buttonSize),
             deleteButton.widthAnchor.constraint(equalToConstant: buttonSize),
             deleteButton.heightAnchor.constraint(equalToConstant: buttonSize),
         ])
@@ -237,13 +257,35 @@ class PreviewOverlayView: NSView {
     func configure(with item: FileShelfItem, initialImage: NSImage?) {
         self.item = item
 
+        let detection = item.detectedContent
         nameLabel.stringValue = FileShelfItemCell.makeDisplayName(for: item)
-        typeBadge.stringValue = "  \(item.itemType.displayName.uppercased())  "
+        typeBadge.stringValue = "  \(detection.badgeText ?? item.itemType.displayName.uppercased())  "
+        sourceAppIconView.image = item.sourceAppIcon
+        sourceAppIconView.isHidden = (sourceAppIconView.image == nil)
+        sourceAppIconView.toolTip = item.sourceAppName
         updatePinState()
 
         imageView.isHidden = true
         imageView.image = nil
         textScrollView.isHidden = true
+        contentContainer.layer?.backgroundColor = AppColors.previewBackground.cgColor
+        detectedURL = nil
+        openLinkButton.isHidden = true
+
+        switch detection {
+        case .color(let color, _):
+            // Full-bleed swatch; the hex is already in the title
+            contentContainer.layer?.backgroundColor = color.cgColor
+            return
+        case .link(let url):
+            detectedURL = url
+            openLinkButton.isHidden = false
+        case .email(let address):
+            detectedURL = URL(string: "mailto:\(address.replacingOccurrences(of: "mailto:", with: ""))")
+            openLinkButton.isHidden = (detectedURL == nil)
+        case .plain:
+            break
+        }
 
         if item.isImage {
             imageView.isHidden = false
@@ -354,6 +396,12 @@ class PreviewOverlayView: NSView {
     // MARK: - Actions
 
     @objc private func backClicked() {
+        delegate?.previewOverlayDidRequestClose(self)
+    }
+
+    @objc private func openLinkClicked() {
+        guard let url = detectedURL else { return }
+        NSWorkspace.shared.open(url)
         delegate?.previewOverlayDidRequestClose(self)
     }
 

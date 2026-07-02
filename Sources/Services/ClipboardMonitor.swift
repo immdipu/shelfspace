@@ -72,6 +72,14 @@ class ClipboardMonitor {
 
         lastChangeCount = pasteboard.changeCount
 
+        // Best-effort guess at the copy's origin: the app frontmost when we
+        // notice the change (skip ourselves)
+        let frontmost = NSWorkspace.shared.frontmostApplication
+        let sourceApp: NSRunningApplication? =
+            (frontmost?.bundleIdentifier == Bundle.main.bundleIdentifier) ? nil : frontmost
+        let sourceBundleID = sourceApp?.bundleIdentifier
+        let sourceName = sourceApp?.localizedName
+
         let settings = SettingsStore.shared
         var newItems: [FileShelfItem] = []
 
@@ -83,7 +91,7 @@ class ClipboardMonitor {
             let fileURLs = urls.filter { $0.isFileURL }
             if !fileURLs.isEmpty {
                 for url in fileURLs {
-                    if let item = createItemFromURL(url) {
+                    if let item = createItemFromURL(url, sourceBundleID: sourceBundleID, sourceName: sourceName) {
                         newItems.append(item)
                     }
                 }
@@ -95,7 +103,7 @@ class ClipboardMonitor {
             if let images = pasteboard.readObjects(forClasses: [NSImage.self]) as? [NSImage] {
                 if !images.isEmpty {
                     for (index, image) in images.enumerated() {
-                        if let item = createItemFromImage(image, index: index) {
+                        if let item = createItemFromImage(image, index: index, sourceBundleID: sourceBundleID, sourceName: sourceName) {
                             newItems.append(item)
                         }
                     }
@@ -111,12 +119,12 @@ class ClipboardMonitor {
                     // Check if it's a file path
                     let url = URL(fileURLWithPath: string)
                     if FileManager.default.fileExists(atPath: url.path) {
-                        if settings.captureFiles, let item = createItemFromURL(url) {
+                        if settings.captureFiles, let item = createItemFromURL(url, sourceBundleID: sourceBundleID, sourceName: sourceName) {
                             newItems.append(item)
                         }
                     } else if string.count > 3 && string.count < maxLen {
                         // It's regular text content
-                        let textItem = FileShelfItem(textContent: string, origin: .clipboard)
+                        let textItem = FileShelfItem(textContent: string, origin: .clipboard, sourceAppBundleID: sourceBundleID, sourceAppName: sourceName)
                         newItems.append(textItem)
                     }
                 }
@@ -129,7 +137,7 @@ class ClipboardMonitor {
         }
     }
 
-    private func createItemFromImage(_ image: NSImage, index: Int) -> FileShelfItem? {
+    private func createItemFromImage(_ image: NSImage, index: Int, sourceBundleID: String? = nil, sourceName: String? = nil) -> FileShelfItem? {
         // Determine if this is likely a screenshot
         let isScreenshot = isLikelyScreenshot(image)
         let origin: FileShelfItem.ItemOrigin = isScreenshot ? .screenshot : .clipboard
@@ -149,14 +157,14 @@ class ClipboardMonitor {
         do {
             try pngData.write(to: tempURL)
             let fileSize = Int64(pngData.count)
-            return FileShelfItem(originalName: filename, fileURL: tempURL, mimeType: "image/png", fileSize: fileSize, origin: origin)
+            return FileShelfItem(originalName: filename, fileURL: tempURL, mimeType: "image/png", fileSize: fileSize, origin: origin, sourceAppBundleID: sourceBundleID, sourceAppName: sourceName)
         } catch {
             Logger.error("Failed to save image: \(error)", category: .clipboard)
             return nil
         }
     }
 
-    private func createItemFromURL(_ url: URL) -> FileShelfItem? {
+    private func createItemFromURL(_ url: URL, sourceBundleID: String? = nil, sourceName: String? = nil) -> FileShelfItem? {
         guard url.isFileURL else { return nil }
 
         // Check if file exists
@@ -187,7 +195,7 @@ class ClipboardMonitor {
                 try FileManager.default.copyItem(at: url, to: tempURL)
             }
 
-            return FileShelfItem(originalName: url.lastPathComponent, fileURL: tempURL, mimeType: mimeType, fileSize: fileSize, origin: .clipboard)
+            return FileShelfItem(originalName: url.lastPathComponent, fileURL: tempURL, mimeType: mimeType, fileSize: fileSize, origin: .clipboard, sourceAppBundleID: sourceBundleID, sourceAppName: sourceName)
         } catch {
             Logger.error("Failed to process file: \(error)", category: .clipboard)
             return nil

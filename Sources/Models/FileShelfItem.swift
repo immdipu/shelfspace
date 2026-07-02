@@ -13,6 +13,8 @@ class FileShelfItem: ObservableObject, Identifiable, Codable {
     var isPinned: Bool = false
     let textContent: String?
     let itemType: ItemType
+    let sourceAppBundleID: String?
+    let sourceAppName: String?
 
     enum ItemOrigin: String, Codable {
         case dragDrop
@@ -65,6 +67,7 @@ class FileShelfItem: ObservableObject, Identifiable, Codable {
     // MARK: - Codable
     enum CodingKeys: String, CodingKey {
         case id, originalName, fileURLPath, mimeType, fileSize, dateAdded, origin, isPinned, textContent, itemType
+        case sourceAppBundleID, sourceAppName
     }
 
     required init(from decoder: Decoder) throws {
@@ -83,6 +86,8 @@ class FileShelfItem: ObservableObject, Identifiable, Codable {
         isPinned = try container.decode(Bool.self, forKey: .isPinned)
         textContent = try container.decodeIfPresent(String.self, forKey: .textContent)
         itemType = try container.decode(ItemType.self, forKey: .itemType)
+        sourceAppBundleID = try container.decodeIfPresent(String.self, forKey: .sourceAppBundleID)
+        sourceAppName = try container.decodeIfPresent(String.self, forKey: .sourceAppName)
     }
 
     func encode(to encoder: Encoder) throws {
@@ -97,10 +102,12 @@ class FileShelfItem: ObservableObject, Identifiable, Codable {
         try container.encode(isPinned, forKey: .isPinned)
         try container.encodeIfPresent(textContent, forKey: .textContent)
         try container.encode(itemType, forKey: .itemType)
+        try container.encodeIfPresent(sourceAppBundleID, forKey: .sourceAppBundleID)
+        try container.encodeIfPresent(sourceAppName, forKey: .sourceAppName)
     }
 
     // MARK: - Initialization
-    init(originalName: String, fileURL: URL?, mimeType: String, fileSize: Int64, origin: ItemOrigin, textContent: String? = nil, id: UUID = UUID(), dateAdded: Date = Date(), isPinned: Bool = false) {
+    init(originalName: String, fileURL: URL?, mimeType: String, fileSize: Int64, origin: ItemOrigin, textContent: String? = nil, id: UUID = UUID(), dateAdded: Date = Date(), isPinned: Bool = false, sourceAppBundleID: String? = nil, sourceAppName: String? = nil) {
         self.id = id
         self.originalName = originalName
         self.fileURL = fileURL
@@ -110,6 +117,8 @@ class FileShelfItem: ObservableObject, Identifiable, Codable {
         self.origin = origin
         self.isPinned = isPinned
         self.textContent = textContent
+        self.sourceAppBundleID = sourceAppBundleID
+        self.sourceAppName = sourceAppName
 
         // Determine item type based on MIME type and content
         if textContent != nil {
@@ -130,15 +139,31 @@ class FileShelfItem: ObservableObject, Identifiable, Codable {
     }
 
     // Convenience initializer for text content
-    convenience init(textContent: String, origin: ItemOrigin) {
+    convenience init(textContent: String, origin: ItemOrigin, sourceAppBundleID: String? = nil, sourceAppName: String? = nil) {
         self.init(
             originalName: "Text Clip",
             fileURL: nil,
             mimeType: "text/plain",
             fileSize: Int64(textContent.utf8.count),
             origin: origin,
-            textContent: textContent
+            textContent: textContent,
+            sourceAppBundleID: sourceAppBundleID,
+            sourceAppName: sourceAppName
         )
+    }
+
+    /// Icon of the app the item was copied from (cached per bundle ID)
+    private static let sourceIconCache = NSCache<NSString, NSImage>()
+
+    var sourceAppIcon: NSImage? {
+        guard let bundleID = sourceAppBundleID else { return nil }
+        if let cached = Self.sourceIconCache.object(forKey: bundleID as NSString) {
+            return cached
+        }
+        guard let appURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) else { return nil }
+        let icon = NSWorkspace.shared.icon(forFile: appURL.path)
+        Self.sourceIconCache.setObject(icon, forKey: bundleID as NSString)
+        return icon
     }
 
     var isImage: Bool {

@@ -36,6 +36,7 @@ class FileShelfItemCell: NSCollectionViewItem {
     let gridTypeIcon = NSImageView()
     let gridNameLabel = NSTextField()
     let gridSizeLabel = NSTextField()
+    let gridSourceAppIcon = NSImageView()
 
     // MARK: - List Mode Views
 
@@ -52,6 +53,7 @@ class FileShelfItemCell: NSCollectionViewItem {
     let listDeleteButton = ListActionButton(symbolName: "trash", label: "Delete", isDanger: true)
     let listPinIndicator = NSImageView()
     let listPinnedBorder = NSView()
+    let listSourceAppIcon = NSImageView()
 
     // MARK: - Constraint Sets
 
@@ -237,6 +239,12 @@ class FileShelfItemCell: NSCollectionViewItem {
         gridSizeLabel.drawsBackground = false
         gridSizeLabel.translatesAutoresizingMaskIntoConstraints = false
         gridFooter.addSubview(gridSizeLabel)
+
+        // Source app icon (bottom-right of footer)
+        gridSourceAppIcon.imageScaling = .scaleProportionallyUpOrDown
+        gridSourceAppIcon.isHidden = true
+        gridSourceAppIcon.translatesAutoresizingMaskIntoConstraints = false
+        gridFooter.addSubview(gridSourceAppIcon)
     }
 
     // MARK: - List Setup
@@ -328,6 +336,12 @@ class FileShelfItemCell: NSCollectionViewItem {
         listPinIndicator.isHidden = true
         listPinIndicator.translatesAutoresizingMaskIntoConstraints = false
         listContainer.addSubview(listPinIndicator)
+
+        // Source app icon (right side, hidden while hovering like the pin)
+        listSourceAppIcon.imageScaling = .scaleProportionallyUpOrDown
+        listSourceAppIcon.isHidden = true
+        listSourceAppIcon.translatesAutoresizingMaskIntoConstraints = false
+        listContainer.addSubview(listSourceAppIcon)
     }
 
     // MARK: - Constraints
@@ -425,13 +439,19 @@ class FileShelfItemCell: NSCollectionViewItem {
             gridTypeIcon.widthAnchor.constraint(equalToConstant: 12),
             gridTypeIcon.heightAnchor.constraint(equalToConstant: 12),
 
+            // Source app icon: 16x16 at footer trailing
+            gridSourceAppIcon.trailingAnchor.constraint(equalTo: gridFooter.trailingAnchor, constant: -8),
+            gridSourceAppIcon.centerYAnchor.constraint(equalTo: gridFooter.centerYAnchor),
+            gridSourceAppIcon.widthAnchor.constraint(equalToConstant: 16),
+            gridSourceAppIcon.heightAnchor.constraint(equalToConstant: 16),
+
             // Name and size in footer
             gridNameLabel.leadingAnchor.constraint(equalTo: gridTypeIconContainer.trailingAnchor, constant: 8),
-            gridNameLabel.trailingAnchor.constraint(equalTo: gridFooter.trailingAnchor, constant: -8),
+            gridNameLabel.trailingAnchor.constraint(equalTo: gridSourceAppIcon.leadingAnchor, constant: -6),
             gridNameLabel.topAnchor.constraint(equalTo: gridFooter.topAnchor, constant: 6),
 
             gridSizeLabel.leadingAnchor.constraint(equalTo: gridTypeIconContainer.trailingAnchor, constant: 8),
-            gridSizeLabel.trailingAnchor.constraint(equalTo: gridFooter.trailingAnchor, constant: -8),
+            gridSizeLabel.trailingAnchor.constraint(equalTo: gridSourceAppIcon.leadingAnchor, constant: -6),
             gridSizeLabel.topAnchor.constraint(equalTo: gridNameLabel.bottomAnchor, constant: 1),
         ]
 
@@ -492,6 +512,12 @@ class FileShelfItemCell: NSCollectionViewItem {
             listPinIndicator.centerYAnchor.constraint(equalTo: listContainer.centerYAnchor),
             listPinIndicator.widthAnchor.constraint(equalToConstant: 14),
             listPinIndicator.heightAnchor.constraint(equalToConstant: 14),
+
+            // Source app icon: left of pin indicator, hidden while hovering
+            listSourceAppIcon.trailingAnchor.constraint(equalTo: listPinIndicator.leadingAnchor, constant: -6),
+            listSourceAppIcon.centerYAnchor.constraint(equalTo: listContainer.centerYAnchor),
+            listSourceAppIcon.widthAnchor.constraint(equalToConstant: 16),
+            listSourceAppIcon.heightAnchor.constraint(equalToConstant: 16),
         ]
     }
 

@@ -1,7 +1,109 @@
 import Cocoa
+import QuickLookThumbnailing
 
 // MARK: - Thumbnail & Preview Image Generation
 extension FileShelfItemCell {
+    static let quickLookCache = NSCache<NSString, NSImage>()
+
+    /// Renders a color swatch with the hex value for color clips
+    func createColorPreviewImage(color: NSColor, hex: String, size: NSSize? = nil) -> NSImage {
+        let previewSize = size ?? NSSize(width: max(previewArea.bounds.width, 200), height: max(previewArea.bounds.height, 100))
+        let image = NSImage(size: previewSize)
+        image.lockFocus()
+
+        color.setFill()
+        NSRect(origin: .zero, size: previewSize).fill()
+
+        // Hex label on a pill that stays readable on any swatch color
+        let font = NSFont.monospacedSystemFont(ofSize: 11, weight: .semibold)
+        let attrs: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: NSColor.white]
+        let text = hex.uppercased()
+        let textSize = text.size(withAttributes: attrs)
+        let padding: CGFloat = 6
+        let pillRect = NSRect(
+            x: (previewSize.width - textSize.width) / 2 - padding,
+            y: 8,
+            width: textSize.width + padding * 2,
+            height: textSize.height + 6
+        )
+        NSColor.black.withAlphaComponent(0.45).setFill()
+        NSBezierPath(roundedRect: pillRect, xRadius: pillRect.height / 2, yRadius: pillRect.height / 2).fill()
+        text.draw(at: NSPoint(x: pillRect.minX + padding, y: pillRect.minY + 3), withAttributes: attrs)
+
+        image.unlockFocus()
+        return image
+    }
+
+    /// Upgrades the grid file placeholder to a real QuickLook thumbnail (PDF page, video frame, …)
+    func loadQuickLookGridThumbnail(for item: FileShelfItem) {
+        let cacheKey = "grid-\(item.id.uuidString)" as NSString
+        if let cached = Self.quickLookCache.object(forKey: cacheKey) {
+            applyQuickLookGridImage(cached)
+            return
+        }
+        let size = NSSize(width: max(previewArea.bounds.width, 200), height: max(previewArea.bounds.height, 100))
+        let token = UUID()
+        thumbnailLoadToken = token
+        generateQuickLookThumbnail(for: item, size: size) { [weak self] image in
+            guard let self = self,
+                  self.thumbnailLoadToken == token,
+                  self.fileItem?.id == item.id,
+                  let image = image else { return }
+            Self.quickLookCache.setObject(image, forKey: cacheKey)
+            self.applyQuickLookGridImage(image)
+        }
+    }
+
+    private func applyQuickLookGridImage(_ image: NSImage) {
+        thumbnailImageView.layer?.contents = nil
+        thumbnailImageView.imageScaling = .scaleProportionallyUpOrDown
+        thumbnailImageView.imageAlignment = .alignCenter
+        thumbnailImageView.image = image
+        thumbnailImageView.isHidden = false
+    }
+
+    /// QuickLook thumbnail for the 36x36 list icon
+    func loadQuickLookListThumbnail(for item: FileShelfItem) {
+        let cacheKey = "list-\(item.id.uuidString)" as NSString
+        if let cached = Self.quickLookCache.object(forKey: cacheKey) {
+            listIconImageView.image = cached
+            listIconImageView.isHidden = false
+            listIconView.isHidden = true
+            return
+        }
+        let token = UUID()
+        listIconLoadToken = token
+        generateQuickLookThumbnail(for: item, size: NSSize(width: 36, height: 36)) { [weak self] image in
+            guard let self = self,
+                  self.listIconLoadToken == token,
+                  self.fileItem?.id == item.id,
+                  let image = image else { return }
+            Self.quickLookCache.setObject(image, forKey: cacheKey)
+            self.listIconImageView.image = image
+            self.listIconImageView.isHidden = false
+            self.listIconView.isHidden = true
+        }
+    }
+
+    /// Only real content thumbnails (.thumbnail) — when a file type has none
+    /// (zip, unknown binaries) the completion gets nil and the icon stays
+    private func generateQuickLookThumbnail(for item: FileShelfItem, size: NSSize, completion: @escaping (NSImage?) -> Void) {
+        guard let fileURL = item.fileURL else {
+            completion(nil)
+            return
+        }
+        let scale = view.window?.backingScaleFactor ?? 2.0
+        let request = QLThumbnailGenerator.Request(
+            fileAt: fileURL,
+            size: size,
+            scale: scale,
+            representationTypes: .thumbnail
+        )
+        QLThumbnailGenerator.shared.generateBestRepresentation(for: request) { representation, _ in
+            let image = representation.map { NSImage(cgImage: $0.cgImage, size: size) }
+            DispatchQueue.main.async { completion(image) }
+        }
+    }
     func loadThumbnail(for item: FileShelfItem) {
         // Thumbnail loading is now handled in configure() via setupPreviewContent()
     }
