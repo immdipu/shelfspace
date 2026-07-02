@@ -149,6 +149,39 @@ class FileShelfItem: ObservableObject, Identifiable, Codable {
         return itemType == .text
     }
 
+    /// File on disk whose contents can be shown as text (dropped .txt/.md/.swift etc)
+    var isTextReadableFile: Bool {
+        guard let fileURL = fileURL else { return false }
+        if mimeType.lowercased().hasPrefix("text/") { return true }
+        let textExtensions: Set<String> = [
+            "txt", "md", "markdown", "rtf", "json", "xml", "csv", "tsv",
+            "yaml", "yml", "log", "ini", "conf", "cfg", "toml",
+            "html", "css", "js", "ts", "swift", "py", "rb", "java", "kt",
+            "c", "cc", "cpp", "h", "hpp", "m", "mm", "sh", "zsh", "bash"
+        ]
+        return textExtensions.contains(fileURL.pathExtension.lowercased())
+    }
+
+    /// Whether the preview overlay can show this item
+    var isPreviewable: Bool {
+        return isImage || isText || isTextReadableFile
+    }
+
+    /// Content that looks like code gets a monospaced preview font
+    var looksLikeCode: Bool {
+        if let fileURL = fileURL {
+            let codeExtensions: Set<String> = [
+                "json", "xml", "yaml", "yml", "toml", "ini", "conf", "cfg",
+                "html", "css", "js", "ts", "swift", "py", "rb", "java", "kt",
+                "c", "cc", "cpp", "h", "hpp", "m", "mm", "sh", "zsh", "bash"
+            ]
+            if codeExtensions.contains(fileURL.pathExtension.lowercased()) { return true }
+        }
+        guard let text = textContent else { return false }
+        let codeMarkers = ["{", "};", "func ", "def ", "import ", "const ", "let ", "var ", "</", "#!"]
+        return codeMarkers.contains { text.contains($0) }
+    }
+
     var displayName: String {
         return originalName.isEmpty ? "Untitled" : originalName
     }

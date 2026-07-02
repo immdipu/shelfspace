@@ -2,7 +2,8 @@ import Cocoa
 
 protocol HeaderViewDelegate: AnyObject {
     func headerViewDidTapSettings(_ headerView: HeaderView)
-    func headerViewDidTapQuit(_ headerView: HeaderView)
+    func headerViewDidTapClose(_ headerView: HeaderView)
+    func headerViewDidTapSearch(_ headerView: HeaderView)
 }
 
 class HeaderView: NSView {
@@ -10,6 +11,7 @@ class HeaderView: NSView {
 
     private let logoView = NSView()
     private let titleLabel = NSTextField()
+    private let searchButton = HeaderButton(symbolName: "magnifyingglass", label: "Search")
     private let settingsButton = HeaderButton(symbolName: "gearshape", label: "Settings")
     private let closeButton = HeaderButton(symbolName: "xmark", label: "Close")
     private let bottomBorder = NSView()
@@ -85,11 +87,15 @@ class HeaderView: NSView {
     }
 
     private func setupButtons() {
+        searchButton.translatesAutoresizingMaskIntoConstraints = false
         settingsButton.translatesAutoresizingMaskIntoConstraints = false
         closeButton.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(searchButton)
         addSubview(settingsButton)
         addSubview(closeButton)
 
+        searchButton.target = self
+        searchButton.action = #selector(searchClicked)
         settingsButton.target = self
         settingsButton.action = #selector(settingsClicked)
         closeButton.target = self
@@ -127,6 +133,12 @@ class HeaderView: NSView {
             settingsButton.widthAnchor.constraint(equalToConstant: 26),
             settingsButton.heightAnchor.constraint(equalToConstant: 26),
 
+            // Search button: gap-1 (4px) from settings
+            searchButton.trailingAnchor.constraint(equalTo: settingsButton.leadingAnchor, constant: -4),
+            searchButton.centerYAnchor.constraint(equalTo: centerYAnchor),
+            searchButton.widthAnchor.constraint(equalToConstant: 26),
+            searchButton.heightAnchor.constraint(equalToConstant: 26),
+
             // Bottom border
             bottomBorder.leadingAnchor.constraint(equalTo: leadingAnchor),
             bottomBorder.trailingAnchor.constraint(equalTo: trailingAnchor),
@@ -142,7 +154,11 @@ class HeaderView: NSView {
     }
 
     @objc private func closeClicked() {
-        delegate?.headerViewDidTapQuit(self)
+        delegate?.headerViewDidTapClose(self)
+    }
+
+    @objc private func searchClicked() {
+        delegate?.headerViewDidTapSearch(self)
     }
 
     // MARK: - Public

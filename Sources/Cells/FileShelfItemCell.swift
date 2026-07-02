@@ -24,6 +24,8 @@ class FileShelfItemCell: NSCollectionViewItem {
     let previewTypeIcon = NSImageView()  // Large standalone icon for text/file preview
     let gradientLayer = CAGradientLayer()
     let hoverOverlay = HoverOverlayView()
+    let gridActionStack = NSStackView()
+    let gridPreviewButton = GridActionButton(symbolName: "eye", label: "Preview")
     let gridCopyButton = GridActionButton(symbolName: "doc.on.doc", label: "Copy")
     let gridPinButton = GridActionButton(symbolName: "pin", label: "Pin")
     let gridDeleteButton = GridActionButton(symbolName: "trash", label: "Delete", isDanger: true)
@@ -43,7 +45,8 @@ class FileShelfItemCell: NSCollectionViewItem {
     let listIconImageView = NSImageView()
     let listNameLabel = NSTextField()
     let listSubtitleLabel = NSTextField()
-    let listActionsContainer = NSView()
+    let listActionsContainer = NSStackView()
+    let listPreviewButton = ListActionButton(symbolName: "eye", label: "Preview")
     let listCopyButton = ListActionButton(symbolName: "doc.on.doc", label: "Copy")
     let listPinButton = ListActionButton(symbolName: "pin", label: "Pin")
     let listDeleteButton = ListActionButton(symbolName: "trash", label: "Delete", isDanger: true)
@@ -163,11 +166,18 @@ class FileShelfItemCell: NSCollectionViewItem {
         hoverOverlay.translatesAutoresizingMaskIntoConstraints = false
         previewArea.addSubview(hoverOverlay)
 
-        // Grid action buttons inside hover overlay
-        for button in [gridCopyButton, gridPinButton, gridDeleteButton] {
+        // Grid action buttons inside hover overlay (stack keeps row centered
+        // when the preview button is hidden)
+        gridActionStack.orientation = .horizontal
+        gridActionStack.spacing = 8
+        gridActionStack.translatesAutoresizingMaskIntoConstraints = false
+        hoverOverlay.addSubview(gridActionStack)
+        for button in [gridPreviewButton, gridCopyButton, gridPinButton, gridDeleteButton] {
             button.translatesAutoresizingMaskIntoConstraints = false
-            hoverOverlay.addSubview(button)
+            gridActionStack.addArrangedSubview(button)
         }
+        gridPreviewButton.target = self
+        gridPreviewButton.action = #selector(previewClicked)
         gridCopyButton.target = self
         gridCopyButton.action = #selector(copyClicked)
         gridPinButton.target = self
@@ -290,14 +300,18 @@ class FileShelfItemCell: NSCollectionViewItem {
         listContainer.addSubview(listSubtitleLabel)
 
         // Action buttons container (only visible on hover)
+        listActionsContainer.orientation = .horizontal
+        listActionsContainer.spacing = 4
         listActionsContainer.translatesAutoresizingMaskIntoConstraints = false
         listActionsContainer.alphaValue = 0
         listContainer.addSubview(listActionsContainer)
 
-        for button in [listCopyButton, listPinButton, listDeleteButton] {
+        for button in [listPreviewButton, listCopyButton, listPinButton, listDeleteButton] {
             button.translatesAutoresizingMaskIntoConstraints = false
-            listActionsContainer.addSubview(button)
+            listActionsContainer.addArrangedSubview(button)
         }
+        listPreviewButton.target = self
+        listPreviewButton.action = #selector(previewClicked)
         listCopyButton.target = self
         listCopyButton.action = #selector(copyClicked)
         listPinButton.target = self
@@ -382,16 +396,14 @@ class FileShelfItemCell: NSCollectionViewItem {
             hoverOverlay.bottomAnchor.constraint(equalTo: previewArea.bottomAnchor),
 
             // Grid action buttons centered in overlay, gap-2 (8px)
-            gridPinButton.centerXAnchor.constraint(equalTo: hoverOverlay.centerXAnchor),
-            gridPinButton.centerYAnchor.constraint(equalTo: hoverOverlay.centerYAnchor),
+            gridActionStack.centerXAnchor.constraint(equalTo: hoverOverlay.centerXAnchor),
+            gridActionStack.centerYAnchor.constraint(equalTo: hoverOverlay.centerYAnchor),
+            gridPreviewButton.widthAnchor.constraint(equalToConstant: DesignSystem.ActionButton.gridSize),
+            gridPreviewButton.heightAnchor.constraint(equalToConstant: DesignSystem.ActionButton.gridSize),
             gridPinButton.widthAnchor.constraint(equalToConstant: DesignSystem.ActionButton.gridSize),
             gridPinButton.heightAnchor.constraint(equalToConstant: DesignSystem.ActionButton.gridSize),
-            gridCopyButton.trailingAnchor.constraint(equalTo: gridPinButton.leadingAnchor, constant: -8),
-            gridCopyButton.centerYAnchor.constraint(equalTo: hoverOverlay.centerYAnchor),
             gridCopyButton.widthAnchor.constraint(equalToConstant: DesignSystem.ActionButton.gridSize),
             gridCopyButton.heightAnchor.constraint(equalToConstant: DesignSystem.ActionButton.gridSize),
-            gridDeleteButton.leadingAnchor.constraint(equalTo: gridPinButton.trailingAnchor, constant: 8),
-            gridDeleteButton.centerYAnchor.constraint(equalTo: hoverOverlay.centerYAnchor),
             gridDeleteButton.widthAnchor.constraint(equalToConstant: DesignSystem.ActionButton.gridSize),
             gridDeleteButton.heightAnchor.constraint(equalToConstant: DesignSystem.ActionButton.gridSize),
 
@@ -466,19 +478,14 @@ class FileShelfItemCell: NSCollectionViewItem {
             listActionsContainer.heightAnchor.constraint(equalToConstant: 28),
 
             // List action buttons: 28x28
-            listCopyButton.leadingAnchor.constraint(equalTo: listActionsContainer.leadingAnchor),
-            listCopyButton.centerYAnchor.constraint(equalTo: listActionsContainer.centerYAnchor),
+            listPreviewButton.widthAnchor.constraint(equalToConstant: 28),
+            listPreviewButton.heightAnchor.constraint(equalToConstant: 28),
             listCopyButton.widthAnchor.constraint(equalToConstant: 28),
             listCopyButton.heightAnchor.constraint(equalToConstant: 28),
-            listPinButton.leadingAnchor.constraint(equalTo: listCopyButton.trailingAnchor, constant: 4),
-            listPinButton.centerYAnchor.constraint(equalTo: listActionsContainer.centerYAnchor),
             listPinButton.widthAnchor.constraint(equalToConstant: 28),
             listPinButton.heightAnchor.constraint(equalToConstant: 28),
-            listDeleteButton.leadingAnchor.constraint(equalTo: listPinButton.trailingAnchor, constant: 4),
-            listDeleteButton.centerYAnchor.constraint(equalTo: listActionsContainer.centerYAnchor),
             listDeleteButton.widthAnchor.constraint(equalToConstant: 28),
             listDeleteButton.heightAnchor.constraint(equalToConstant: 28),
-            listDeleteButton.trailingAnchor.constraint(equalTo: listActionsContainer.trailingAnchor),
 
             // Pin indicator (right side, visible when pinned + not hovered)
             listPinIndicator.trailingAnchor.constraint(equalTo: listContainer.trailingAnchor, constant: -12),
@@ -533,7 +540,33 @@ class FileShelfItemCell: NSCollectionViewItem {
         guard let item = fileItem else { return }
         let button: ActionButtonFeedback = (currentViewMode == .grid) ? gridCopyButton : listCopyButton
         button.playCopyFeedback(duration: 0.6)
+        playCopyPulse()
         delegate?.fileShelfItemCell(self, didRequestCopyItem: item)
+    }
+
+    @objc func previewClicked() {
+        guard let item = fileItem else { return }
+        delegate?.fileShelfItemCell(self, didRequestPreviewItem: item)
+    }
+
+    /// Subtle accent flash on the card confirming a copy
+    func playCopyPulse() {
+        let targetLayer = (currentViewMode == .grid) ? gridContainer.layer : listContainer.layer
+        guard let layer = targetLayer else { return }
+        let flash = CABasicAnimation(keyPath: "backgroundColor")
+        flash.fromValue = layer.backgroundColor
+        flash.toValue = AppColors.accent.withAlphaComponent(0.12).cgColor
+        flash.duration = 0.18
+        flash.autoreverses = true
+        flash.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+        layer.add(flash, forKey: "copyPulse")
+    }
+
+    /// Plays the copy confirmation on the visible button + card (used by keyboard copy)
+    func playCopyFeedback() {
+        let button: ActionButtonFeedback = (currentViewMode == .grid) ? gridCopyButton : listCopyButton
+        button.playCopyFeedback(duration: 0.6)
+        playCopyPulse()
     }
 
     @objc func pinClicked() {

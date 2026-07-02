@@ -40,11 +40,45 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         if let button = statusBarItem.button {
             // Use SF Symbol for the menu bar icon
             button.image = NSImage(systemSymbolName: "cube.box", accessibilityDescription: "ShelfSpace")
-            button.action = #selector(togglePopover(_:))
+            button.action = #selector(statusBarButtonClicked(_:))
             button.target = self
+            button.sendAction(on: [.leftMouseUp, .rightMouseUp])
         }
-        
-        // No context menu - direct click to toggle
+    }
+
+    @objc private func statusBarButtonClicked(_ sender: AnyObject?) {
+        if NSApp.currentEvent?.type == .rightMouseUp {
+            showStatusBarMenu()
+        } else {
+            togglePopover(sender)
+        }
+    }
+
+    private func showStatusBarMenu() {
+        let menu = NSMenu()
+
+        let openItem = NSMenuItem(title: "Open ShelfSpace", action: #selector(showPopover(_:)), keyEquivalent: "")
+        openItem.target = self
+        menu.addItem(openItem)
+
+        let settingsItem = NSMenuItem(title: "Settings…", action: #selector(showSettingsWindow), keyEquivalent: ",")
+        settingsItem.target = self
+        menu.addItem(settingsItem)
+
+        menu.addItem(.separator())
+
+        let quitItem = NSMenuItem(title: "Quit ShelfSpace", action: #selector(quitApp), keyEquivalent: "q")
+        quitItem.target = self
+        menu.addItem(quitItem)
+
+        // Assign temporarily so left-click keeps toggling the popover
+        statusBarItem.menu = menu
+        statusBarItem.button?.performClick(nil)
+        statusBarItem.menu = nil
+    }
+
+    @objc private func showSettingsWindow() {
+        SettingsWindowController.shared.show()
     }
     
     private func setupPopover() {

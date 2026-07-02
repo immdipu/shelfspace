@@ -38,7 +38,8 @@ extension FileShelfItemCell {
 
         // List subtitle varies by type
         if item.isText, let content = item.textContent {
-            listSubtitleLabel.stringValue = content.components(separatedBy: .newlines).first ?? ""
+            listSubtitleLabel.stringValue = content.components(separatedBy: .newlines)
+                .first { !$0.trimmingCharacters(in: .whitespaces).isEmpty } ?? ""
         } else {
             listSubtitleLabel.stringValue = item.formattedFileSize
         }
@@ -48,6 +49,12 @@ extension FileShelfItemCell {
 
         // Setup list icon based on type
         setupListIcon(for: item)
+
+        // Preview button visibility: only previewable items; compact grid
+        // cards are too narrow for a fourth button (Space still previews)
+        let canPreview = item.isPreviewable
+        gridPreviewButton.isHidden = !canPreview || GridDensityManager.shared.currentDensity == .compact
+        listPreviewButton.isHidden = !canPreview
 
         // Pin state
         let pinImageName = item.isPinned ? "pin.fill" : "pin"
@@ -128,7 +135,7 @@ extension FileShelfItemCell {
             // IMAGE ITEMS: Load actual image thumbnail
             thumbnailImageView.isHidden = false
             loadGridThumbnail(for: item)
-        } else if let fileURL = item.fileURL, isTextFile(fileURL: fileURL, mimeType: item.mimeType) {
+        } else if let fileURL = item.fileURL, item.isTextReadableFile {
             // TEXT FILES (dropped .txt/.md/.swift etc): Load text from file, render as image
             thumbnailImageView.isHidden = false
             // Show placeholder first
@@ -166,18 +173,6 @@ extension FileShelfItemCell {
             thumbnailImageView.imageScaling = .scaleAxesIndependently
             thumbnailImageView.isHidden = false
         }
-    }
-
-    private func isTextFile(fileURL: URL, mimeType: String) -> Bool {
-        if mimeType.lowercased().hasPrefix("text/") { return true }
-        let ext = fileURL.pathExtension.lowercased()
-        let textExtensions: Set<String> = [
-            "txt", "md", "markdown", "rtf", "json", "xml", "csv", "tsv",
-            "yaml", "yml", "log", "ini", "conf", "cfg", "toml",
-            "html", "css", "js", "ts", "swift", "py", "rb", "java", "kt",
-            "c", "cc", "cpp", "h", "hpp", "m", "mm", "sh", "zsh", "bash"
-        ]
-        return textExtensions.contains(ext)
     }
 
     /// Applies the loaded image with the current thumbnail style (contain or cover)
@@ -288,7 +283,12 @@ extension FileShelfItemCell {
             return "Image \(formatter.string(from: item.dateAdded))"
         } else if item.isText {
             if let content = item.textContent, !content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                let preview = String(content.prefix(15)).trimmingCharacters(in: .whitespacesAndNewlines)
+                // Use the first non-empty line: raw prefix can embed newlines
+                // (e.g. "import Cocoa\n\ns…") which overflow single-line labels
+                let firstLine = content
+                    .components(separatedBy: .newlines)
+                    .first { !$0.trimmingCharacters(in: .whitespaces).isEmpty } ?? ""
+                let preview = String(firstLine.prefix(15)).trimmingCharacters(in: .whitespacesAndNewlines)
                 return preview.isEmpty ? "Text Note" : preview
             }
             let formatter = DateFormatter()
@@ -325,18 +325,12 @@ extension FileShelfItemCell {
         // Check if click is on an action button
         let localPoint = view.convert(event.locationInWindow, from: nil)
 
-        if currentViewMode == .grid {
-            let overlayPoint = hoverOverlay.convert(localPoint, from: view)
-            for button in [gridCopyButton, gridPinButton, gridDeleteButton] {
-                let buttonPoint = button.convert(overlayPoint, from: hoverOverlay)
-                if button.bounds.contains(buttonPoint) { return }
-            }
-        } else {
-            let containerPoint = listActionsContainer.convert(localPoint, from: view)
-            for button in [listCopyButton, listPinButton, listDeleteButton] {
-                let buttonPoint = button.convert(containerPoint, from: listActionsContainer)
-                if button.bounds.contains(buttonPoint) { return }
-            }
+        let buttons: [NSButton] = currentViewMode == .grid
+            ? [gridPreviewButton, gridCopyButton, gridPinButton, gridDeleteButton]
+            : [listPreviewButton, listCopyButton, listPinButton, listDeleteButton]
+        for button in buttons where !button.isHidden {
+            let buttonPoint = button.convert(localPoint, from: view)
+            if button.bounds.contains(buttonPoint) { return }
         }
 
         // Start drag if not clicking a button

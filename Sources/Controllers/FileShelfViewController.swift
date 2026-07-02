@@ -9,6 +9,10 @@ class FileShelfViewController: NSViewController {
     var tabBar: TabBar!
     var emptyStateView: EmptyStateView!
     var dropZoneOverlay: DropZoneView!
+    var searchBarContainer: NSView!
+    var searchField: NSSearchField!
+    var searchBarHeightConstraint: NSLayoutConstraint!
+    var previewOverlay: PreviewOverlayView?
 
 
     // Legacy compatibility
@@ -24,6 +28,7 @@ class FileShelfViewController: NSViewController {
 
     var currentFilter: ContentFilter = .all
     var currentViewMode: DesignSystem.ViewMode = .list
+    var searchQuery: String = ""
     var items: [FileShelfItem] = []
     var filteredItems: [FileShelfItem] = []
     var maxItems: Int { SettingsStore.shared.maxItems }
@@ -88,6 +93,8 @@ class FileShelfViewController: NSViewController {
     override func viewDidAppear() {
         super.viewDidAppear()
         if !items.isEmpty { updateContent() }
+        // Make keyboard navigation work immediately after the popover opens
+        view.window?.makeFirstResponder(collectionView)
     }
 
     // MARK: - Setup
@@ -97,6 +104,7 @@ class FileShelfViewController: NSViewController {
         view.layer?.backgroundColor = AppColors.background.cgColor
 
         setupHeader()
+        setupSearchBar()
         setupTabBar()
         setupEmptyState()
         setupDropZoneOverlay()
@@ -188,7 +196,12 @@ class FileShelfViewController: NSViewController {
             headerView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             headerView.heightAnchor.constraint(equalToConstant: DesignSystem.Header.height),
 
-            tabBar.topAnchor.constraint(equalTo: headerView.bottomAnchor),
+            searchBarContainer.topAnchor.constraint(equalTo: headerView.bottomAnchor),
+            searchBarContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            searchBarContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            searchBarHeightConstraint,
+
+            tabBar.topAnchor.constraint(equalTo: searchBarContainer.bottomAnchor),
             tabBar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             tabBar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             tabBar.heightAnchor.constraint(equalToConstant: DesignSystem.Header.tabBarHeight),
@@ -251,6 +264,16 @@ class FileShelfViewController: NSViewController {
             case .images: return item.isImage
             case .text: return item.isText
             case .files: return !item.isImage && !item.isText
+            }
+        }
+
+        let query = searchQuery.trimmingCharacters(in: .whitespaces).lowercased()
+        if !query.isEmpty {
+            filteredItems = filteredItems.filter { item in
+                item.originalName.lowercased().contains(query)
+                    || FileShelfItemCell.makeDisplayName(for: item).lowercased().contains(query)
+                    || (item.textContent?.lowercased().contains(query) ?? false)
+                    || (item.fileURL?.lastPathComponent.lowercased().contains(query) ?? false)
             }
         }
 
@@ -409,6 +432,59 @@ class FileShelfViewController: NSViewController {
         NSApplication.shared.terminate(nil)
     }
 
+    func closePopover() {
+        (NSApplication.shared.delegate as? AppDelegate)?.closePopover(nil)
+    }
+
+    // MARK: - Keyboard
+
+    override func keyDown(with event: NSEvent) {
+        if event.modifierFlags.contains(.command),
+           event.charactersIgnoringModifiers?.lowercased() == "f" {
+            toggleSearchBar()
+            return
+        }
+
+        switch event.keyCode {
+        case 36, 76: // Return / keypad Enter → copy selection
+            if let item = selectedItem() {
+                copyItem(item)
+                visibleCell(for: item)?.playCopyFeedback()
+                return
+            }
+        case 49: // Space → preview selection
+            if let item = selectedItem(), item.isPreviewable {
+                showPreview(for: item)
+                return
+            }
+        default:
+            break
+        }
+        super.keyDown(with: event)
+    }
+
+    /// Esc priority chain: preview → search → popover
+    override func cancelOperation(_ sender: Any?) {
+        if previewOverlay != nil {
+            closePreview()
+        } else if isSearchBarVisible {
+            closeSearchBar()
+        } else {
+            closePopover()
+        }
+    }
+
+    func selectedItem() -> FileShelfItem? {
+        guard let indexPath = collectionView.selectionIndexPaths.first,
+              indexPath.item < filteredItems.count else { return nil }
+        return filteredItems[indexPath.item]
+    }
+
+    func visibleCell(for item: FileShelfItem) -> FileShelfItemCell? {
+        guard let index = filteredItems.firstIndex(where: { $0.id == item.id }) else { return nil }
+        return collectionView.item(at: IndexPath(item: index, section: 0)) as? FileShelfItemCell
+    }
+
     // MARK: - Settings
 
     private func showSettings() {
@@ -425,8 +501,12 @@ extension FileShelfViewController: HeaderViewDelegate {
         showSettings()
     }
 
-    func headerViewDidTapQuit(_ headerView: HeaderView) {
-        quitApp()
+    func headerViewDidTapSearch(_ headerView: HeaderView) {
+        toggleSearchBar()
+    }
+
+    func headerViewDidTapClose(_ headerView: HeaderView) {
+        closePopover()
     }
 }
 
